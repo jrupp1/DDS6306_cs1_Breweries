@@ -1,0 +1,30 @@
+"","category_id","category","subcategory_id","subcategory","ibu_lrng","ibu_hrng","abv_lrng","abv_hrng","ibu_avg","abv_avg"
+"3","1","Standard American Beer","1C","Cream Ale","8","20","4.2","5.6",14,4.9
+"16","5","Pale Bitter European Beer","5B","Kölsch","18","30","4.4","5.2",24,4.8
+"20","6","Amber Malty European Lager","6B","Rauchbier","20","30","4.8","6.0",25,5.4
+"22","7","Amber Bitter European Beer","7A","Vienna Lager","18","30","4.7","5.5",24,5.1
+"23","7","Amber Bitter European Beer","7B","Altbier","25","50","4.3","5.5",37.5,4.9
+"26","8","Dark European Lager","8B","Schwarzbier","20","30","4.4","5.4",25,4.9
+"27","9","Strong European Beer","9A","Doppelbock","16","26","7.0","10.0",21,8.5
+"29","9","Strong European Beer","9C","Baltic Porter","20","40","6.5","9.5",30,8
+"45","15","Irish Beer","15A","Irish Red Ale","18","28","3.8","5.0",23,4.4
+"49","16","Dark British Beer","16B","Oatmeal Stout","25","40","4.2","5.9",32.5,5.05
+"53","17","Strong British Ale","17B","Old Ale","30","60","5.5","9.0",45,7.25
+"55","17","Strong British Ale","17D","English Barleywine","35","70","8.0","12.0",52.5,10
+"57","18","Pale American Ale","18B","American Pale Ale","30","50","4.5","6.2",40,5.35
+"60","19","Amber And Brown American Beer","19C","American Brown Ale","20","30","4.3","6.2",25,5.25
+"61","20","American Porter And Stout","20A","American Porter","25","50","4.8","6.5",37.5,5.65
+"62","20","American Porter And Stout","20B","American Stout","35","75","5.0","7.0",55,6
+"64","21","IPA","21A","American IPA","40","70","5.5","7.5",55,6.5
+"67","22","Strong American Ale","22B","American Strong Ale","50","100","6.3","10.0",75,8.15
+"68","22","Strong American Ale","22C","American Barleywine","50","100","8.0","12.0",75,10
+"71","23","European Sour Ale","23B","Flanders Red Ale","10","25","4.6","6.5",17.5,5.55
+"76","24","Belgian Ale","24A","Witbier","8","20","4.5","5.5",14,5
+"77","24","Belgian Ale","24B","Belgian Pale Ale","20","30","4.8","5.5",25,5.15
+"78","24","Belgian Ale","24C","Bière de Garde","18","28","6.0","8.5",23,7.25
+"86","27","Historical Beer","27A","Gose","5","12","4.2","4.8",8.5,4.5
+"93","27","Historical Beer","27H","Roggenbier","10","20","4.5","6.0",15,5.25
+"123","M4","Specialty Mead","M4A","Braggot",NA,NA,NA,NA,NA,NA
+"1","14","Scottish Ale","14A","Scottish Light","10","20","2.5","3.2",15,2.85
+"2","14","Scottish Ale","14B","Scottish Heavy","10","20","3.2","3.9",15,3.55
+"31","14","Scottish Ale","14C","Scottish Export","15","30","3.9","6.0",22.5,4.95

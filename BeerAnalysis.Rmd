@@ -1,0 +1,762 @@
+---
+title: "Beer And Breweries"
+author: "Jon Paugh & Jason Rupp"
+date: "10/4/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Analysis of brewery and beer data
+
+#install packages
+
+```{r}
+install.packages("usmap")
+install.packages("maps")
+install.packages("MASS")
+install.packages("ggmap")
+install.packages('e1071')
+```
+
+
+# read the data
+
+```{r}
+
+Beer = read.csv(file.choose(),header = TRUE)
+Brewery = read.csv(file.choose(),header = TRUE)
+```
+
+
+# initial analysis
+
+```{r}
+str(Beer)
+str(Brewery)
+
+head(Beer)
+head(Brewery)
+
+```
+
+# join together the brewery and beer info
+
+```{r}
+library(dplyr)
+dfFull = left_join(Beer, Brewery, by = c("Brewery_id" =  "Brew_ID"))
+
+```
+
+# check fail of join rows
+```{r}
+dfFullNoJoin <- dfFull[is.na(dfFull$City),]
+dfFullNoJoin
+# every beer has a corresponding brewery
+```
+
+
+
+
+## analysis 
+# 1. How many breweries are present in each state?
+
+```{r}
+
+dfBreweryByState <- Brewery %>%
+  group_by(State) %>%
+  summarize(BreweryCount = n()) %>% rename(state = State)
+
+dfBreweryByState
+
+dfBreweryByState %>% arrange(desc(dfBreweryByState$BreweryCount))
+
+head(dfBreweryByState %>% arrange(desc(dfBreweryByState$BreweryCount)), n=3)
+
+head(dfBreweryByState %>% arrange(dfBreweryByState$BreweryCount), n=4)
+
+mean(as.numeric(dfBreweryByState$BreweryCount))
+
+
+
+```
+
+
+
+# test map package
+
+```{r}
+
+
+# NOT - this does not show DC!
+
+library(usmap)
+library(ggplot2)
+
+
+dfBreweryByState = dfBreweryByState %>% mutate(abbr = trimws( as.character(state)))
+dfBreweryByState <- dfBreweryByState %>% mutate(BreweryCount = as.double(BreweryCount))
+
+dfBreweryByStateWithStatePop = left_join(statepop, dfBreweryByState, by = "abbr")
+dfBreweryByStateWithStatePop
+
+dfBreweryByStateWithStatePop <- dfBreweryByStateWithStatePop %>% mutate(BreweryPerMil = (BreweryCount / (pop_2015 /1000000) ))
+
+
+dfBreweryByStateWithStatePop %>%
+ggplot(color = "black")+
+  geom_bar(mapping=aes(x=reorder(state, BreweryCount), y=BreweryCount, fill= BreweryCount), color='palegoldenrod', stat = 'identity', size = 0.2) +
+  coord_flip() +
+  #scale_y_continuous(expand = c(0,0), limits = c(0,2.75)) +
+  #labs(x = "State", y = "Brewery Count",title = "Number of Breweries per State") +
+  ylab("Brewery Count") +
+  xlab('State') +
+  ggtitle('Brewery Count by State') +
+  #ggtitle('Number of Breweries per State') +
+  theme_minimal() +
+  theme(axis.text=element_text(color = "white"), axis.text.y = element_text(size=6), legend.position =  "none", plot.background = element_rect("cornsilk4"), panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), panel.grid.major.y = element_line(color="ivory2"), panel.grid.major.x = element_line("cornsilk4"), axis.title = element_text(color = "white"), plot.title = element_text(color = "white")) +
+  scale_fill_gradient2(low = "lightgoldenrod", mid = "gold", high = "goldenrod4", midpoint = 25) 
+    #theme(legend.title = element_blank())
+
+  
+  
+  
+  
+
+
+
+library(RColorBrewer)
+
+dfBreweryByStateWithStatePop
+
+#plot_usmap(data = dfBreweryByStateWithStatePop, values = "BreweryCount", color = "red") + 
+#  #scale_fill_continuous(name = "Brewery Count", label = scales::comma) + 
+#  theme(legend.position = "right") +
+#      scale_fill_gradientn(colours = rev(heat.colors(4), lim = c(0,50)), #terrain.colors(10), ##palette(YlOrBr),#colours = rev(rainbow(7)),#palette(YlOrBr)
+#      breaks = c(10, 20, 30, 40))
+#      #scale_fill_manual(values = palette("Dark2"))
+#      #scale_fill_brewer(palette = "YlOrBr")
+#
+#display.brewer.pal(n=c(7), "YlOrBr")
+#
+#dfBreweryByStateWithStatePop_tmp <- dfBreweryByStateWithStatePop
+#
+#dfBreweryByStateWithStatePop_tmp$BreweryCount <- as.factor(dfBreweryByStateWithStatePop_tmp$BreweryCount)
+#
+#str(dfBreweryByStateWithStatePop_tmp)
+#
+#
+#plot_usmap(data = dfBreweryByStateWithStatePop, values = "BreweryCount", color = "burlywood4") + 
+#  #scale_fill_continuous(name = "Brewery Count", label = scales::comma) + 
+#  theme(legend.position = "right") +
+#      scale_fill_gradientn(colors = rev(rainbow(7)), #palette(YlOrBr),#colours = rev(rainbow(7)),#palette(YlOrBr)
+#      breaks = c(10, 20, 30, 40)) +
+#      scale_fill_distiller(type = "div", limits = limit)  
+#  #scale_fill_distiller(type = "div", limits = c(min(dfBreweryByStateWithStatePop$BreweryCount), #max(dfBreweryByStateWithStatePop$BreweryCount))) +
+
+
+      #scale_fill_manual(values = rainbow(7))
+      #scale_fill_brewer(palette = "YlOrBr")
+
+#display.brewer.all(2)
+#plot_usmap(data = dfBreweryByStateWithStatePop, values = "BreweryCount", color = "red") + 
+#  #scale_fill_continuous(name = "Brewery Count", label = scales::comma) + 
+#  theme(legend.position = "right") +
+#      scale_fill_gradientn(colours = terrain.colors(4),
+#      breaks = c(10, 20, 30, 40)) +
+#      scale_fill_manual(values = rainbow(7))
+#      #scale_fill_brewer(palette = "YlOrBr")
+
+#limit <- max(dfBreweryByStateWithStatePop$BreweryCount) * c(-1, 1)
+
+#limit
+#
+#plot_usmap(data = dfBreweryByStateWithStatePop, values = "BreweryCount", color = "burlywood4") + 
+#  theme(legend.position = "right") +
+#      #scale_fill_gradientn(colors = rev(rainbow(7)),
+#      #breaks = c(10, 20, 30, 40)) +
+#      scale_fill_distiller(type = "div", palette = "YlOrBr", direction = 0, limits = c(0, 50), #breaks=c(0,10,20,30,40))
+
+plot_usmap(data = dfBreweryByStateWithStatePop, values = "BreweryCount", color = "burlywood4") + 
+  theme(legend.position = "right", legend.title = element_text("Count", color = "white"), plot.background = element_rect("cornsilk4"), panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), plot.title = element_text(color = "white"), legend.background = element_rect(fill="ivory4"), legend.text = element_text(color = "white")) +
+  scale_fill_distiller(type = "div", palette = "YlOrBr", direction = 0, breaks=c(10,20,30,40), name = "Count") +
+  labs(title="Number of Breweries per State")
+
+dfBreweryByStateWithStatePop$BreweryPerMil
+max(dfBreweryByStateWithStatePop$BreweryPerMil)
+min(dfBreweryByStateWithStatePop$BreweryPerMil)
+
+#plot_usmap(data = dfBreweryByStateWithStatePop, values = "BreweryPerMil", color = "red") + 
+#  scale_fill_continuous(name = "Brewery per Million Persons", label = scales::comma) + 
+#  theme(legend.position = "right")
+
+
+plot_usmap(data = dfBreweryByStateWithStatePop, values = "BreweryPerMil", color = "burlywood4") + 
+  theme(legend.position = "right", legend.title = element_text("Count", color = "white"), plot.background = element_rect("cornsilk4"), panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), plot.title = element_text(color = "white"), legend.background = element_rect(fill="ivory4"), legend.text = element_text(color = "white")) +
+  scale_fill_distiller(type = "div", palette = "YlOrBr", direction = 0, breaks=c(4,8,12), name = "Count") +
+  labs(title="Number of Breweries per Million Persons")
+
+
+
+```
+
+
+
+
+
+
+
+
+#
+#dfBreweryByStateWithStatePop %>%
+#ggplot()+
+#  geom_bar(mapping=aes(x=reorder(state, BreweryPerMil), y=BreweryPerMil), stat = 'identity') +
+#  coord_flip() +
+#  #scale_y_continuous(expand = c(0,0), limits = c(0,2.75)) +
+#  ylab("Brewery per Million People") +
+#  xlab('State') +
+#  ggtitle('Brewery Count by State') +
+#  theme(axis.text = element_text(size=6))
+#      
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#plot_usmap(data = dfBreweryByStateWithStatePop, values = "BreweryPerMil", color = "red") + 
+#  scale_fill_continuous(name = "Brewery per Million Persons", label = scales::comma) + 
+#  theme(legend.position = "right")
+
+
+
+
+
+# by state map
+## NOT USING THIS CODE BELOW, BUT KEEPING FOR REFERENCE
+# IT DOES NOT WORK CURRENTLY
+# The fix might be to sort the data before displaying it?
+# https://stackoverflow.com/questions/24422719/plotting-barchart-on-states-map-in-r
+
+```{r}
+library(ggplot2)
+library(maps)
+
+us_states <- map_data("state")
+
+dfBreweryByState$state
+
+trimws(dfBreweryByState$state)
+
+dfBreweryByStateMap <- dfBreweryByState %>% mutate(StateChar =  trimws(dfBreweryByState$state))
+dfBreweryByStateMap <- dfBreweryByStateMap %>% mutate(StateName = tolower(state.name[match(dfBreweryByStateMap$StateChar,state.abb)]))
+dfBreweryByStateMap
+
+
+dfBreweryByStateMapFull <- right_join(dfBreweryByStateMap, us_states, by = c("StateName" =  "region"))
+
+dfBreweryByStateMapFull
+
+head(statepop)
+
+```
+
+
+
+
+
+# 2. Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file.  (RMD only, this does not need to be included in the presentation or the deck.)
+
+```{r}
+
+head(dfFull,6)
+tail(dfFull, 6)
+
+```
+
+
+# 3. Address the missing values in each column.
+
+```{r}
+
+apply(Beer, 2, function(x) any(is.na(x)))
+# has some NA's for ABV, IBU
+apply(Brewery, 2, function(x) any(is.na(x)))
+# no NA's here
+
+MeanABV = mean(dfFull$ABV, na.rm = TRUE)
+MeanABV
+
+dfFullNoMissing <- dfFull
+
+dfFullNoMissing$ABV[is.na(dfFullNoMissing$ABV)] <- MeanABV
+MeanIBU = mean(dfFull$IBU, na.rm = TRUE)
+MeanIBU
+dfFullNoMissing$IBU[is.na(dfFullNoMissing$IBU)] <- MeanIBU
+
+dfFullNoMissing
+```
+
+# 4. Compute the median alcohol content and international bitterness unit for each state. Plot a bar chart to compare.
+
+```{r}
+
+# let's use the original dataset for this, not with all the average values filled in
+dfFull
+write.csv(dfFull, "FullBeerData.csv")
+
+dfMedianABVAndIBUByState <- dfFull %>%
+  group_by(State) %>%
+  summarize(MeanABV = mean(ABV,na.rm = TRUE), MeanIBU = mean(IBU, na.rm = TRUE)) %>% rename(state = State)
+
+dfMedianABVAndIBUByState
+
+# this looks interesting https://medium.com/@NickDoesData/visualizing-geographic-data-in-r-fb2e0f5b59c5
+# the one "simple bar chart of state gdps" with a coordinate flip looks interesting
+# TODO : this needs some color. Ideally different color for each state, but the color matches on each graph so they line up
+dfMedianABVAndIBUByState %>%
+ggplot()+
+  geom_bar(mapping=aes(x=reorder(state, MeanABV), y=MeanABV, fill=MeanABV), stat = 'identity') +
+  coord_flip() +
+  #scale_y_continuous(expand = c(0,0), limits = c(0,2.75)) +
+  ylab("Mean ABV") +
+  xlab('State') +
+  ggtitle('Mean ABV by State') +
+  theme_minimal() +
+  theme(axis.text=element_text(color = "white"), axis.text.y = element_text(size=6), legend.position =  "none", plot.background = element_rect("cornsilk4"), panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), panel.grid.major.y = element_line(color="ivory2"), panel.grid.major.x = element_line("cornsilk4"), axis.title = element_text(color = "white"), plot.title = element_text(color = "white")) +
+  scale_fill_gradient2(low = "lightgoldenrod", mid = "gold", high = "goldenrod4", midpoint = 0.056) 
+
+mean(dfMedianABVAndIBUByState$MeanABV)
+min(dfMedianABVAndIBUByState$MeanABV)
+max(dfMedianABVAndIBUByState$MeanABV)
+
+# let's plot MeanIBU in same order as MeanABV so we can compare 
+#NEED to fix the label
+
+
+dfMedianABVAndIBUByState %>%
+ggplot()+
+  geom_bar(mapping=aes(x=reorder(state, MeanABV), y=MeanIBU), stat = 'identity') +
+  coord_flip() +
+  #scale_y_continuous(expand = c(0,0), limits = c(0,2.75)) +
+  ylab("Mean ABV") +
+  xlab('State') +
+  ggtitle('Mean by Brewery State') +
+  theme(axis.text = element_text(size=6))
+
+
+
+
+```
+
+
+
+# 5. Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
+
+```{r}
+dfFull[which.max(dfFull$ABV),]
+dfFull[which.max(dfFull$IBU),]
+
+```
+
+
+# 6. Comment on the summary statistics and distribution of the ABV variable
+
+```{r}
+# review, histogram
+# review QQ plot
+# review other?
+
+summary(dfFull$ABV)
+#dfFull %>% filter(! is.na(dfFull$ABV))
+
+# why doesnt this work below???
+#dfFullNoABVNA <- dfFull %>% filter(! is.na(dfFull$ABV)) 
+#ggplot(dfFullNoABVNA, aes(dfFull$ABV)) + geom_histogram() +
+#  scale_x_continuous(name = "ABV (Alcohol by Volume)") +
+#   scale_y_continuous(name = "Count of Beers")
+
+ggplot(dfFull, aes(dfFull$ABV)) + geom_histogram() +
+  scale_x_continuous(name = "ABV (Alcohol by Volume)") +
+   scale_y_continuous(name = "Count of Beers")
+
+
+
+```
+
+# 7. Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Draw a scatter plot.  Make your best judgment of a relationship and EXPLAIN your answer
+
+```{r}
+# show a scatterplot of relationship betweeen bitterness (ABV) and alcoholic content (ABV).
+# fit the curve using a line
+
+library(ggplot2)
+
+# should we NOT include the NA's here? It's very distinctive and probably throws things off
+ggplot(dfFull, aes(x=dfFull$IBU, y=dfFull$ABV)) + geom_point() + geom_smooth(method=lm) +
+  xlab("IBU") + ylab("ABV") + ggtitle("ABV vs IBU for All Beers")
+
+
+
+```
+
+
+# 8.  Budweiser would also like to investigate the difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with “Ale” in its name other than IPA).  You decide to use KNN clustering to investigate this relationship.  Provide statistical evidence one way or the other. You can of course assume your audience is comfortable with percentages … KNN is very easy to understand.  
+
+
+```{r}
+library(stringr)
+# filter out Indian Pale Ales and other types of "Ale"
+dfFull
+dfIndianPaleAles <- dfFull %>% filter(str_detect(Style, "IPA"))
+dfIndianPaleAles
+dfOtherAles <- dfFull %>% filter((str_detect(Style, "Ale"))) %>% filter(!str_detect(Style,"IPA"))
+dfOtherAles
+
+
+# Might need to give an additional attribute to indicate if the beer is an IPA or other type
+dfIndianPaleAles <- dfIndianPaleAles %>% mutate(AleType = 'Indian Pale Ale')
+dfIndianPaleAles
+dfOtherAles <- dfOtherAles %>% mutate(AleType ='Other Ale')
+dfOtherAles
+
+
+
+merge(dfIndianPaleAles,dfOtherAles,by="Beer_ID")
+dfAllAles <- rbind(dfIndianPaleAles,dfOtherAles)
+dfAllAles
+
+dfAllAles <- dfAllAles %>% filter(!is.na(dfAllAles$ABV)) 
+dfAllAles <- dfAllAles %>% filter(!is.na(dfAllAles$IBU))
+
+
+
+
+# show a scatterplot of IBU and ABV with color coding or different symbol for IPA and Ale
+
+# Ellipse by groups
+p <- ggplot(dfAllAles, aes(IBU, ABV, color = AleType))+
+  geom_point()
+p + stat_ellipse()
+# Change the type of ellipses: possible values are "t", "norm", "euclid"
+p + stat_ellipse(type = "norm")
+
+# https://ggplot2.tidyverse.org/reference/stat_ellipse.html
+#  default "t" assumes a multivariate t-distribution, and "norm" assumes a multivariate normal distribution
+
+
+```
+
+
+# use KNN to classify other ale vs pale ale and check the results
+
+```{r}
+# use KNN to predict the group membership and see if it works.
+# 
+
+# remove the rows with no ABV or no IBU
+
+
+# KNN Loop for average of many training / test partition 
+# Loop for many k and the average of many training / test partition
+library(class)
+library(caret)
+#library(e1071)
+
+
+set.seed(1)
+splitPerc = .7
+iterations = 100
+numks = 60
+masterAcc = matrix(nrow = iterations, ncol = numks)
+masterSpec = matrix(nrow = iterations, ncol = numks)
+masterSens = matrix(nrow = iterations, ncol = numks)
+
+  
+for(j in 1:iterations)
+{
+trainIndices = sample(1:dim(dfAllAles)[1],round(splitPerc * dim(mpg)[1]))
+train = dfAllAles[trainIndices,]
+test = dfAllAles[-trainIndices,]
+for(i in 1:numks)
+{
+  classifications = knn(train[,c(3,4)],test[,c(3,4)],as.factor(train$AleType), prob = TRUE, k = i)
+  table(as.factor(test$AleType),classifications)
+  CM = confusionMatrix(table(as.factor(test$AleType),classifications))
+  masterAcc[j,i] = CM$overall[1]
+  masterSens[j,i] = CM$byClass[1][[1]] # sensitivity
+  masterSpec[j,i] = CM$byClass[2][[1]] # specificity
+}
+
+}
+
+MeanAcc = colMeans(masterAcc)
+
+plot(seq(1,numks,1),MeanAcc, type = "l")
+which.max(MeanAcc)
+max(MeanAcc)
+
+
+
+MeanSens = colMeans(masterSens)
+
+plot(seq(1,numks,1),MeanSens, type = "l")
+which.max(MeanSens)
+max(MeanSens)
+
+MeanSpec = colMeans(masterSpec)
+
+plot(seq(1,numks,1),MeanSpec, type = "l")
+which.max(MeanSpec)
+max(MeanSpec)
+
+# we could  do a t test for IBU and ABV for IPA vs Ale too?
+
+
+
+```
+
+# let's try to make a graph of the decision boundaries
+# https://stackoverflow.com/questions/31234621/variation-on-how-to-plot-decision-boundary-of-a-k-nearest-neighbor-classifier-f/31236327
+# using this display of the decision boundaries we can see that really the best indicator of IPA vs other all is IBU
+# above around 60 (slightly less of higher ABV)
+
+
+
+```{r}
+
+require(MASS)
+library(MASS)
+
+
+# more detailed
+test <- expand.grid(IBU=seq(0, 150,
+                           by=3),
+                     ABV=seq(0.03, 0.1, 
+                           by=0.005))
+
+
+
+require(class)
+library(class)
+
+
+
+classif <- knn(dfAllAles[,c(4,3)],test,dfAllAles$AleType, prob = TRUE, k = 30)
+prob <- attr(classif, "prob")
+
+
+library(dplyr)
+
+dataf <- bind_rows(mutate(test,
+                         prob=prob,
+                         cls="Indian Pale Ale",
+                         prob_cls=ifelse(classif==cls,
+                                         1, 0)),
+                  mutate(test,
+                         prob=prob,
+                         cls="Other Ale",
+                         prob_cls=ifelse(classif==cls,
+                                         1, 0)))
+
+
+ggplot(dataf) +
+  geom_point(aes(x=IBU, y=ABV, col=cls),
+             data = mutate(test, cls=classif),
+             size=1.2) + 
+  geom_contour(aes(x=IBU, y=ABV, z=prob_cls, group=cls, color=cls),
+               bins=2,
+               data=dataf) +
+  geom_point(aes(x=IBU, y=ABV, col=cls),
+             size=3,
+             data=data.frame(IBU=dfAllAles$IBU, ABV=dfAllAles$ABV, cls=dfAllAles$AleType))
+
+
+
+```
+
+
+
+
+# 9. Knock their socks off!  Find one other useful inference from the data that you feel Budweiser may be able to find value in.  You must convince them why it is important and back up your conviction with appropriate statistical evidence.
+
+```{r}
+
+
+
+```
+
+
+#https://www.rdocumentation.org/packages/ggmap/versions/2.6.1/topics/geocode
+# https://developers.google.com/maps/documentation/maps-static/intro
+
+
+```{r}
+#install.packages("ggmap")
+
+library(tidyverse)
+library(ggmap)
+
+register_google(key="AIzaSyC8dK9rGnefbGjNyOVrfmJSAf6lY_BgBQ4", write=TRUE)
+
+# the example given
+geocode("houston texas")
+# this works 
+geocode("Bend OR")
+dfFullWithGeocodes = dfFull %>% mutate(location = paste(City, State, sep=" "))
+dfFullWithGeocodes <- mutate_geocode(dfFullWithGeocodes, location)
+
+write.csv(dfFullWithGeocodes, "BeerFullWithGeocodes.csv")
+
+dfFullWithGeocodes = read.csv("BeerFullWithGeocodes.csv")
+
+```
+
+
+# now let's analyze the data, is there a relationship between ABV and latitude (north/south)?
+
+```{r}
+
+ggplot(dfFull, aes(x=dfFullWithGeocodes$lat, y=dfFullWithGeocodes$ABV)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Latitude") + ylab("ABV") + ggtitle("ABV vs Latititude for All Beers")
+
+# this is NOT that interesting, it's slightly decreasing it appears, but ever so slightly
+
+ggplot(dfFull, aes(x=dfFullWithGeocodes$lat, y=dfFullWithGeocodes$IBU)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Latitude") + ylab("IBU") + ggtitle("Latitude vs IBU for All Beers")
+
+# this is NOT that interesting, it's slightly decreasing it appears, but ever so slightly
+
+
+
+ggplot(dfFull, aes(x=dfFullWithGeocodes$lon, y=dfFullWithGeocodes$ABV)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Latitude") + ylab("ABV") + ggtitle("ABV vs Longtitude for All Beers")
+
+ggplot(dfFull, aes(x=dfFullWithGeocodes$lon, y=dfFullWithGeocodes$IBU)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Latitude") + ylab("IBU") + ggtitle("IBU vs Longtitude for All Beers")
+
+
+
+
+
+
+```
+
+# let's try IBU vs latitude
+
+```{r}
+
+
+
+```
+
+
+# show a map with the location of breweries displayed
+
+```{r}
+
+usa_center = as.numeric(geocode("United States"))
+USAMap = ggmap(get_googlemap(center=usa_center, scale=4, zoom=3), extent="normal")
+
+USAMap + 
+  geom_point(data = dfFullWithGeocodes, aes(x = lon, y = lat, fill = "red", alpha = 0.8), size = 1, shape = 21) +
+  guides(fill=FALSE, alpha=FALSE, size=FALSE)
+
+# this works but is it that interesting? Not sure...
+
+```
+
+
+
+
+# mash up the brewery data by state with state demographic data
+#state income data here: https://taxfoundation.org/new-state-level-price-data-shows-smaller-state-real-income-differences/
+
+```{r}
+dfStateIncomeData = read.csv("AdjustedIncomeByState.csv")
+
+head(dfStateIncomeData)
+
+head(dfBreweryByStateWithStatePop)
+head(dfStateIncomeData)
+
+dfStateIncomeData = dfStateIncomeData %>% mutate(abbr = trimws( as.character(dfStateIncomeData$State)))
+
+dfBeerWithIncomes = left_join(dfBreweryByStateWithStatePop, dfStateIncomeData, by = c("abbr" =  "abbr"))
+
+
+str(dfBeerWithIncomes)
+
+dfBeerWithIncomes$PerCapitaDisposableIncome = as.numeric(dfBeerWithIncomes$PerCapitaDisposableIncome)
+dfBeerWithIncomes$StatePriceAdjustedIncome = as.numeric(dfBeerWithIncomes$StatePriceAdjustedIncome)
+dfBeerWithIncomes$StatePriceAdjustedIncomeDif = as.numeric(dfBeerWithIncomes$StatePriceAdjustedIncomeDif)
+dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer = as.numeric(dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer)
+
+```
+
+# scatterplot of # of breweries vs income levels
+
+```{r}
+
+ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$StatePriceAdjustedIncome, y=dfBeerWithIncomes$BreweryPerMil)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Per Capita Adjusted Disposable Income") + ylab("Brewery Count") + ggtitle("Per Capita Adjusted Disposable I vs IBU for All Beers")
+
+
+head(dfBeerWithIncomes)
+
+ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer, y=dfBeerWithIncomes$BreweryPerMil)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Affordability Adjustment") + ylab("Brewery Count") + ggtitle("Brewery Count vs Affordability Adjustment")
+
+
+ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer, y=dfBeerWithIncomes$BreweryPerMil)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Affordability Adjustment") + ylab("Brewery Count") + ggtitle("Brewery Count vs Affordability Adjustment")
+
+
+ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer, y=dfBeerWithIncomes$BreweryPerMil)) + geom_point() + geom_smooth(method=loess) +
+  xlab("Affordability Adjustment") + ylab("Brewery Count") + ggtitle("Brewery Count vs Affordability Adjustment") +   geom_text(aes(label=ifelse(dfBeerWithIncomes$BreweryPerMil>4,as.character(abbr),'')),hjust=0,vjust=0)
+
+```
+
+
+# let's look at absolute value of the adjustment... 
+
+```{r}
+
+dfBeerWithIncomes$AbsoluteValueIncomeAdjPer = abs(dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer)
+
+ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$AbsoluteValueIncomeAdjPer, y=dfBeerWithIncomes$BreweryPerMil)) + geom_point() + geom_smooth(method=loess) +
+  xlab("Absolute Affordability Adjustment") + ylab("Brewery Count") + ggtitle("Brewery Count vs Absolute Affordability Adjustment") +   geom_text(aes(label=ifelse(dfBeerWithIncomes$BreweryPerMil>4,as.character(abbr),'')),hjust=0,vjust=0)
+
+ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$AbsoluteValueIncomeAdjPer, y=dfBeerWithIncomes$BreweryPerMil)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Absolute Affordability Adjustment") + ylab("Brewery Count") + ggtitle("Brewery Count vs Absolute Affordability Adjustment") +   geom_text(aes(label=ifelse(dfBeerWithIncomes$BreweryPerMil>4,as.character(abbr),'')),hjust=0,vjust=0)
+
+
+
+
+```
+
+
