@@ -184,7 +184,7 @@ tail(dfFull, 6)
 
 #Here are the NA graphs side by side showing percentage of values missing with central aes applied
 
-names(dfFull) <- c("brew", "beer_ID", "abv", "ibu", "brewery_id", "style", "ounces", "brewery", "city", "state")
+names(dfFull) <- c("Brew", "Beer_ID", "ABV", "IBU", "Brewery_id", "Style", "Ounces", "Brewery", "City", "State")
 
 #head(dfFull)
 
@@ -568,7 +568,7 @@ dfMatchesCatInx <-which(as.character(t_beer_catz$category)%in%as.character(df_Be
 
 dfRefMatchesCat <- rng_df_t %>% filter(category_id == 14)
 
-rng_df_f <- rbind(rng_df_t[dfRefMatchesSubCat,], dfRefMatchesCat)
+rng_df_f <- rbind(rng_df_t[dfRefMatchesSubCat_inx,], dfRefMatchesCat)
 
 #rng_df_f
 
@@ -582,20 +582,20 @@ rng_df_f <- rbind(rng_df_t[dfRefMatchesSubCat,], dfRefMatchesCat)
 # write.csv(rng_df_t, file="[YOUR FILE PATH AND NAME HERE]")
 
 # Here are the beers from the full df with missing ibu values
-ibu_blnks <- dfFull %>% filter(is.na(ibu))
+ibu_blnks <- dfFull %>% filter(is.na(IBU))
 
 #ibu_blnks
 
 
 #Same with ABV for beers
-abv_blnks <- dfFull %>% filter(is.na(abv))
+abv_blnks <- dfFull %>% filter(is.na(ABV))
 
 #abv_blnks
 
 
 #Make of copy of the style column strip white space and create special char for lookup
 
-ibu_blnks <- mutate(ibu_blnks, t_style = ibu_blnks$style)
+ibu_blnks <- mutate(ibu_blnks, t_style = ibu_blnks$Style)
 
 ibu_blnks$t_style <- str_replace_all(as.character(ibu_blnks$t_style),"[/]{1}", "")
 
@@ -647,7 +647,7 @@ ibus_to_replace <- df_to_impt[[13]]
 
 #ibus_to_replace
 
-df_to_impt$ibu <- df_to_impt$styIbu
+df_to_impt$IBU <- df_to_impt$styIbu
 
 #df_to_impt
 
@@ -662,7 +662,7 @@ df_imputed_ibus <- df_to_impt
 
 dfFull_imp <- dfFull
 
-dfFull_inx_to_impt <- which(is.na(dfFull$ibu))
+dfFull_inx_to_impt <- which(is.na(dfFull$IBU))
 
 j <- as.numeric(c(1))
 
@@ -674,9 +674,11 @@ for (i in 1: length(dfFull_inx_to_impt))
   
 }
 
-ibu_miss_val <- dfFull %>% filter(is.na(ibu))
+ibu_miss_val <- dfFull %>% filter(is.na(IBU))
 
 #df_imputed_ibus
+
+
 
 
 
@@ -763,16 +765,20 @@ grid.arrange(naPlot1_imp,naPlot2_imp, nrow=1)
 
 ```
 
+
+
+
+
 # 4. Compute the median alcohol content and international bitterness unit for each state. Plot a bar chart to compare.
 
 ```{r}
 
 # let's use the original dataset for this, not with all the average values filled in
 dfFull
-write.csv(dfFull, "FullBeerData.csv")
+#write.csv(dfFull, "FullBeerData.csv")
 
 dfMedianABVAndIBUByState <- dfFull %>%
-  group_by(State) %>%
+  group_by(state) %>%
   summarize(MeanABV = mean(ABV,na.rm = TRUE), MeanIBU = mean(IBU, na.rm = TRUE)) %>% rename(state = State)
 
 dfMedianABVAndIBUByState
