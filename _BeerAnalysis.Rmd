@@ -80,7 +80,7 @@ dfFullNoJoin <- dfFull[is.na(dfFull$City),]
 
 
 ## analysis 
-# 1. How many breweries are present in each state?
+## 1. How many breweries are present in each state?
 
 ```{r}
 
@@ -168,7 +168,7 @@ plot_usmap(data = dfBreweryByStateWithStatePop, values = "BreweryPerMil", color 
 
 
 
-# 2. Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file.  (RMD only, this does not need to be included in the presentation or the deck.)
+## 2. Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file.  (RMD only, this does not need to be included in the presentation or the deck.)
 
 ```{r}
 
@@ -178,13 +178,13 @@ tail(dfFull, 6)
 ```
 
 
-# 3. Address the missing values in each column.
+## 3. Address the missing values in each column.
 
 ```{r}
 
 #Here are the NA graphs side by side showing percentage of values missing with central aes applied
 
-names(dfFull) <- c("Brew", "Beer_ID", "ABV", "IBU", "Brewery_id", "Style", "Ounces", "Brewery", "City", "State")
+names(dfFull) <- c("brew", "beer_ID", "abv", "ibu", "brewery_id", "style", "ounces", "brewery", "city", "state")
 
 #head(dfFull)
 
@@ -582,20 +582,20 @@ rng_df_f <- rbind(rng_df_t[dfRefMatchesSubCat_inx,], dfRefMatchesCat)
 # write.csv(rng_df_t, file="[YOUR FILE PATH AND NAME HERE]")
 
 # Here are the beers from the full df with missing ibu values
-ibu_blnks <- dfFull %>% filter(is.na(IBU))
+ibu_blnks <- dfFull %>% filter(is.na(ibu))
 
 #ibu_blnks
 
 
 #Same with ABV for beers
-abv_blnks <- dfFull %>% filter(is.na(ABV))
+abv_blnks <- dfFull %>% filter(is.na(abv))
 
 #abv_blnks
 
 
 #Make of copy of the style column strip white space and create special char for lookup
 
-ibu_blnks <- mutate(ibu_blnks, t_style = ibu_blnks$Style)
+ibu_blnks <- mutate(ibu_blnks, t_style = ibu_blnks$style)
 
 ibu_blnks$t_style <- str_replace_all(as.character(ibu_blnks$t_style),"[/]{1}", "")
 
@@ -647,7 +647,7 @@ ibus_to_replace <- df_to_impt[[13]]
 
 #ibus_to_replace
 
-df_to_impt$IBU <- df_to_impt$styIbu
+df_to_impt$ibu <- df_to_impt$styIbu
 
 #df_to_impt
 
@@ -662,7 +662,7 @@ df_imputed_ibus <- df_to_impt
 
 dfFull_imp <- dfFull
 
-dfFull_inx_to_impt <- which(is.na(dfFull$IBU))
+dfFull_inx_to_impt <- which(is.na(dfFull$ibu))
 
 j <- as.numeric(c(1))
 
@@ -674,7 +674,7 @@ for (i in 1: length(dfFull_inx_to_impt))
   
 }
 
-ibu_miss_val <- dfFull %>% filter(is.na(IBU))
+ibu_miss_val <- dfFull %>% filter(is.na(ibu))
 
 #df_imputed_ibus
 
@@ -769,7 +769,7 @@ grid.arrange(naPlot1_imp,naPlot2_imp, nrow=1)
 
 
 
-# 4. Compute the median alcohol content and international bitterness unit for each state. Plot a bar chart to compare.
+## 4. Compute the median alcohol content and international bitterness unit for each state. Plot a bar chart to compare.
 
 ```{r}
 
@@ -777,11 +777,11 @@ grid.arrange(naPlot1_imp,naPlot2_imp, nrow=1)
 dfFull
 #write.csv(dfFull, "FullBeerData.csv")
 
-dfMedianABVAndIBUByState <- dfFull %>%
-  group_by(state) %>%
-  summarize(MeanABV = mean(ABV,na.rm = TRUE), MeanIBU = mean(IBU, na.rm = TRUE)) %>% rename(state = State)
-
-dfMedianABVAndIBUByState
+#dfMedianABVAndIBUByState <- dfFull %>%
+#  group_by(State) %>%
+#  summarize(MeanABV = mean(ABV,na.rm = TRUE), MeanIBU = mean(IBU, na.rm = TRUE)) %>% rename(state = State)
+#
+#dfMedianABVAndIBUByState
 
 # this looks interesting https://medium.com/@NickDoesData/visualizing-geographic-data-in-r-fb2e0f5b59c5
 # the one "simple bar chart of state gdps" with a coordinate flip looks interesting
@@ -795,10 +795,20 @@ ggplot()+
   xlab('State') +
   ggtitle('Mean ABV by State') +
   theme_minimal() +
-  theme(axis.text=element_text(color = "white"), axis.text.y = element_text(size=6), legend.position =  "none", plot.background = element_rect("cornsilk4"), panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), panel.grid.major.y = element_line(color="ivory2"), panel.grid.major.x = element_line("cornsilk4"), axis.title = element_text(color = "white"), plot.title = element_text(color = "white")) +
+  theme(axis.text=element_text(color = "white"), 
+        axis.text.y = element_text(size=6), 
+        legend.position =  "none", 
+        plot.background = element_rect("cornsilk4"), 
+        panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), 
+        panel.grid.major.y = element_line(color="ivory2"), 
+        panel.grid.major.x = element_line("cornsilk4"), 
+        axis.title = element_text(color = "white"), 
+        plot.title = element_text(color = "white")) + 
   scale_fill_gradient2(low = "lightgoldenrod", mid = "gold", high = "goldenrod4", midpoint = 0.056) 
 
-mean(dfMedianABVAndIBUByState$MeanABV)
+
+dfMedianABVAndIBUByState %>% arrange(dfMedianABVAndIBUByState$MeanIBU)
+#mean(dfMedianABVAndIBUByState$MeanIBU%>% filter(!is.na(IBU)))
 min(dfMedianABVAndIBUByState$MeanABV)
 max(dfMedianABVAndIBUByState$MeanABV)
 
@@ -806,15 +816,25 @@ max(dfMedianABVAndIBUByState$MeanABV)
 #NEED to fix the label
 
 
-dfMedianABVAndIBUByState %>%
+dfMedianABVAndIBUByState %>% filter(!is.na(MeanIBU)) %>%
 ggplot()+
-  geom_bar(mapping=aes(x=reorder(state, MeanABV), y=MeanIBU), stat = 'identity') +
+  geom_bar(mapping=aes(x=reorder(state, MeanIBU), y=MeanIBU, fill = MeanIBU), stat = 'identity') +
   coord_flip() +
   #scale_y_continuous(expand = c(0,0), limits = c(0,2.75)) +
-  ylab("Mean ABV") +
+  ylab("Mean IBU") +
   xlab('State') +
-  ggtitle('Mean by Brewery State') +
-  theme(axis.text = element_text(size=6))
+  ggtitle('Mean IBU by State') +
+  theme_minimal() +
+  theme(axis.text=element_text(color = "white"), 
+        axis.text.y = element_text(size=6), 
+        legend.position =  "none", 
+        plot.background = element_rect("cornsilk4"), 
+        panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), 
+        panel.grid.major.y = element_line(color="ivory2"), 
+        panel.grid.major.x = element_line("cornsilk4"), 
+        axis.title = element_text(color = "white"), 
+        plot.title = element_text(color = "white")) + 
+  scale_fill_gradient2(low = "lightgoldenrod", mid = "gold", high = "goldenrod4", midpoint = 42) 
 
 
 
@@ -823,10 +843,16 @@ ggplot()+
 
 
 
-# 5. Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
+## 5. Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
+
+### The state which contains the brewery that produces the beer with the highest alcohol content (ABV) is Oregon.
+
+### The state that ontains the brewery that produces the beer with the highest bitterness rating(IBU) is Colorado.
 
 ```{r}
+#Prints Max ABV state
 dfFull[which.max(dfFull$ABV),]
+#Print Max IBU state
 dfFull[which.max(dfFull$IBU),]
 
 ```
