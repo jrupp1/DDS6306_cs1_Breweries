@@ -1,0 +1,1204 @@
+---
+title: "Beer And Breweries"
+author: "Jon Paugh & Jason Rupp"
+date: "10/4/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Analysis of brewery and beer data
+
+#install packages
+
+```{r}
+
+install.packages(c("plyr", "tidyverse", "jsonlite", "rvest", "naniar", "stringi", 
+                   "gridExtra", "usmap", "maps", "MASS", "ggmap", "class", "caret"))
+install.packages("e1071", dependencies = TRUE)
+```
+
+#Load Libraries
+```{r}
+
+library(plyr)
+library(tidyverse)
+library(jsonlite)
+library(rvest)
+library(naniar)
+library(stringi)
+library(gridExtra)
+library(usmap)
+library(maps)
+library(MASS)
+library(ggmap)
+library(class)
+library(caret)
+library(e1071)
+
+```
+
+
+# read the data
+
+```{r}
+
+Beer = read.csv(file.choose(),header = TRUE)
+Brewery = read.csv(file.choose(),header = TRUE)
+```
+
+
+# initial analysis
+
+```{r}
+str(Beer)
+str(Brewery)
+
+head(Beer)
+head(Brewery)
+
+```
+
+# join together the brewery and beer info
+
+```{r}
+
+dfFull = left_join(Beer, Brewery, by = c("Brewery_id" =  "Brew_ID"))
+
+```
+
+# check fail of join rows
+```{r}
+dfFullNoJoin <- dfFull[is.na(dfFull$City),]
+#dfFullNoJoin
+# every beer has a corresponding brewery
+```
+
+
+
+
+## analysis 
+# 1. How many breweries are present in each state?
+
+```{r}
+
+dfBreweryByState <- Brewery %>%
+  group_by(State) %>%
+  summarize(BreweryCount = n()) %>% rename(state = State)
+
+dfBreweryByState
+
+dfBreweryByState %>% arrange(desc(dfBreweryByState$BreweryCount))
+
+head(dfBreweryByState %>% arrange(desc(dfBreweryByState$BreweryCount)), n=3)
+
+head(dfBreweryByState %>% arrange(dfBreweryByState$BreweryCount), n=4)
+
+mean(as.numeric(dfBreweryByState$BreweryCount))
+
+
+
+```
+
+
+
+# First Three graphs in pp are below
+
+```{r}
+
+
+# NOT - this does not show DC!
+
+
+dfBreweryByState = dfBreweryByState %>% mutate(abbr = trimws( as.character(state)))
+dfBreweryByState <- dfBreweryByState %>% mutate(BreweryCount = as.double(BreweryCount))
+
+dfBreweryByStateWithStatePop = left_join(statepop, dfBreweryByState, by = "abbr")
+dfBreweryByStateWithStatePop
+
+dfBreweryByStateWithStatePop <- dfBreweryByStateWithStatePop %>% mutate(BreweryPerMil = (BreweryCount / (pop_2015 /1000000) ))
+
+
+#Histgram with # of breweries per state
+dfBreweryByStateWithStatePop %>%
+ggplot(color = "black")+
+  geom_bar(mapping=aes(x=reorder(state, BreweryCount), y=BreweryCount, fill= BreweryCount), color='palegoldenrod', stat = 'identity', size = 0.2) +
+  coord_flip() +
+  ylab("Brewery Count") +
+  xlab('State') +
+  ggtitle('Brewery Count by State') +
+  theme_minimal() +
+  theme(axis.text=element_text(color = "white"), axis.text.y = element_text(size=6), legend.position =  "none", plot.background = element_rect("cornsilk4"), panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), panel.grid.major.y = element_line(color="ivory2"), panel.grid.major.x = element_line("cornsilk4"), axis.title = element_text(color = "white"), plot.title = element_text(color = "white")) +
+  scale_fill_gradient2(low = "lightgoldenrod", mid = "gold", high = "goldenrod4", midpoint = 25)
+  
+
+#US heat map by state
+plot_usmap(data = dfBreweryByStateWithStatePop, values = "BreweryCount", color = "burlywood4") +
+  theme(
+    legend.position = "right",
+    legend.title = element_text(color = "white"), 
+    plot.background = element_rect("cornsilk4"), 
+    panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), 
+    plot.title = element_text(color = "white"), 
+    legend.background = element_rect(fill="ivory4"), 
+    legend.text = element_text(color = "white")) + 
+   scale_fill_distiller(type = "div", palette = "YlOrBr", direction = 0, breaks=c(10,20,30,40), name = "Count") +
+   labs(title="Number of Breweries per State")
+
+
+
+
+#US heat map per capita
+plot_usmap(data = dfBreweryByStateWithStatePop, values = "BreweryPerMil", color = "burlywood4") + 
+  theme(legend.position = "right", legend.title = element_text(color = "white"), plot.background = element_rect("cornsilk4"), panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), plot.title = element_text(color = "white"), legend.background = element_rect(fill="ivory4"), legend.text = element_text(color = "white")) +
+  scale_fill_distiller(type = "div", palette = "YlOrBr", direction = 0, breaks=c(4,8,12), name = "Count") +
+  labs(title="Number of Breweries per Million Persons")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+# 2. Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file.  (RMD only, this does not need to be included in the presentation or the deck.)
+
+```{r}
+
+head(dfFull,6)
+tail(dfFull, 6)
+
+```
+
+
+# 3. Address the missing values in each column.
+
+```{r}
+
+#Here are the NA graphs side by side showing percentage of values missing with central aes applied
+
+names(dfFull) <- c("brew", "beer_ID", "abv", "ibu", "brewery_id", "style", "ounces", "brewery", "city", "state")
+
+#head(dfFull)
+
+
+#Here we assemble a df out of data to plot missing vals easily to apply themes
+
+notNaCols <- colSums(!is.na(dfFull), na.rm = TRUE) %>% tibble::enframe(name = NULL)
+
+#notNaCols
+
+isNaCols <- colSums(is.na(dfFull), na.rm = FALSE)%>% tibble::enframe(name = NULL)
+
+#isNaCols
+
+dfFull_vt <- cbind(names(dfFull),notNaCols) #
+
+
+dfFull_vt <- cbind(dfFull_vt, isNaCols)
+
+names(dfFull_vt) <- c("column", "notNA", "isNA")
+
+#head(dfFull_vt)
+
+
+
+# Store the raw data rather than truncate, can always truncate later/after
+
+#dfFull_vt <- dfFull_vt %>% mutate(percentNA = mapply(function(x,y) round(y/(x+y),4)*100,dfFull_vt$notNA, dfFull_vt$isNA)) ----> This will calc and round (truncate) percentage missing, chose raw data col, trunc after
+
+dfFull_vt <- dfFull_vt %>% mutate(total = rowSums(dfFull_vt[,2:3]))
+
+dfFull_vt <- dfFull_vt %>% mutate(percentNA = mapply(function(x,y) y/(x+y),dfFull_vt$notNA, dfFull_vt$isNA))
+
+#dfFull_vt
+
+
+#NA Plot by column with number of missing values
+
+naPlot1 <- dfFull_vt %>% 
+ggplot(aes(x=reorder(column, -isNA), y = isNA)) + 
+  geom_histogram(stat = "identity", fill ="gold2") +
+  labs(x="Category", y="# of Missing Values", title = "Missing Values per Category") +
+  #theme_minimal() +
+  theme(axis.text=element_text(color = "white"), 
+        axis.text.x = element_text(angle=45, hjust = 1), 
+        legend.position =  "none", 
+        plot.background = element_rect("cornsilk4"), 
+        panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), 
+        panel.grid.major.y = element_line(color="cornsilk4"), 
+        panel.grid.major.x = element_blank(),#element_line("ivory2"),
+        axis.title = element_text(color = "white"), 
+        plot.title = element_text(color = "white"), 
+        panel.grid.minor.x = element_line(color="white"))
+
+#naPlot1
+
+#Shows the two columns with missing vals and the percentage missing
+
+naPlot2 <- dfFull_vt[c(3:4),] %>% 
+ggplot(aes(x=reorder(column, -isNA), y = isNA)) + 
+  geom_histogram(stat = "identity", fill = 'gold2') + 
+  geom_text(data=dfFull_vt[c(3:4),], label=paste(round((dfFull_vt[c(3:4),]$percentNA)*100, 2), "%"), 
+    y = (dfFull_vt[c(3:4),]$isNA)+100, size = 8, color="red") +
+  geom_histogram(data=dfFull_vt[3:4,], mapping = aes(x=column, y = total), 
+    stat = "identity", alpha = 1/5, fill="darkgoldenrod4") +
+  labs(x="Cateogry", y="# of Values", title = "Percentage of Missing Values") +
+  #theme_minimal() +
+  theme(axis.text=element_text(color = "white"), 
+        axis.text.x = element_text(angle=45, hjust = 1), 
+        legend.position =  "none", 
+        plot.background = element_rect("cornsilk4"), 
+        panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), 
+        panel.grid.major.x = element_blank(),#element_line("ivory2"), 
+        panel.grid.major.y = element_line(color="cornsilk4"), 
+        axis.title = element_text(color = "white"), 
+        plot.title = element_text(color = "white"), 
+        panel.grid.minor.x = element_line(color="white"))
+        #plot.margin = margin(l=-5))
+  
+#naPlot2
+
+grid.arrange(naPlot1,naPlot2, nrow=1)
+
+
+# Found Beer style guidelines at this websiite https://www.bjcp.org/stylecenter.php
+# They provided a link to an xml doc that has a number of stats about different beer styles
+# We parse the required data and create a data frame to attempt to impute missing vals
+
+hp<-read_html("https://raw.githubusercontent.com/meanphil/bjcp-guidelines-2015/master/styleguide.xml")
+
+#hp
+
+
+
+#Extracting the major categories 40 total, and the IDs based on the doc for merging
+
+beer_cat <- html_nodes(hp, "category")
+
+beer_catz <- str_extract(as.character(beer_cat), "(<name>)([\\w\\s]+)(</name>)")
+
+beer_catz <- stri_sub(as.character(beer_catz), 7, -8)
+
+beer_catz_id <- str_extract(as.character(beer_cat), "(<category id=)([:graph:]+)(>)")
+
+#beer_catz_id
+
+beer_catz_id <- str_replace_all(str_extract_all(as.character(beer_catz_id), "(\")([:graph:]+)(\")"), "\"", "")
+
+#beer_catz_id
+
+
+# This is the initial df that contains the cat ids and the beer categories
+
+
+beer_catz <- data.frame(cat_id = beer_catz_id, category = beer_catz)
+
+
+
+
+# Now we extract the subcategories of each type of beer (136 total)  
+# Parse the meaningful text with regex
+# We didn't make a df until we had the rest of the data for ibus and abvs
+
+beer_subcat <- html_nodes(hp, "subcategory")
+
+beer_subcat <- as.character(beer_subcat)
+
+#beer_subcat
+
+beer_subcatz <- str_extract(beer_subcat, "(<name>)([|\\w|\\d|\\s|[:punct:]]+)(</name>)")
+
+beer_subcatz <- stri_sub(as.character(beer_subcatz), 7, -8)
+
+#beer_subcatz
+
+
+
+#Subcategory ID
+
+beer_subcatz_id <- str_extract_all(as.character(beer_subcat), "(<subcategory id=)([:graph:]+)(>)")
+
+#beer_subcatz_id <- str_extract_all(beer_subcatz_id, ("\"[:alnum:]\""))
+
+beer_subcatz_id <- str_replace_all(str_extract_all(as.character(beer_subcatz_id), "(\")([:graph:]+)(\")"), "\"", "")
+
+#beer_subcatz_id
+
+
+
+
+
+# Starting the Extraction of beer stats
+
+
+beer_stats <- str_extract(beer_subcat, "(<stats>)((\\s|\\S)+)(</stats>)")
+
+ibu_range <- str_extract(beer_stats, "(<ibu flexible=)((\\s+|\\S+))(</ibu>)")
+
+#ibu_range #Careful printing, sometimes consumed a lot of memory and printed with tons of whitespace for some reason, but the df is good
+
+
+
+
+
+#Low IBU range
+
+ibu_lrng <-  str_extract(ibu_range, "(<low>)([0-9]+)(</low>)")
+
+ibu_lrng <- str_extract(ibu_lrng, "[0-9]+")
+
+#ibu_lrng
+
+
+
+
+
+#High IBU range
+
+ibu_hrng <-  str_extract(ibu_range, "(<high>)([0-9]+)(</high>)")
+
+ibu_hrng <- str_extract(ibu_hrng, "[0-9]+")
+
+#ibu_hrng
+
+
+
+
+
+#Here we merge the extracted IBU ranges with the extracted subcategories
+# The remaining df has the ibu ranges lined up with the correct subcat
+
+ibu_rng_df <- data.frame(subcategory_id = beer_subcatz_id, subcategory=beer_subcatz) %>% as_tibble()
+
+ibu_rng_df <- cbind(ibu_rng_df, ibu_lrng, ibu_hrng)
+
+#ibu_rng_df
+
+
+
+
+
+#Now we repeat what we've done above to extract ABV
+#This should be made into a function to save lines of code
+
+abv_range <- str_extract(beer_stats, "(<abv flexible=)((\\s+|\\S+))(</abv>)")
+
+#abv_range
+
+
+
+
+#ABV Low Range
+
+abv_lrng <-  str_extract(abv_range, "(<low>)(([0-9]+)(\\.)([0-9]+)|([0-9]+))(</low>)")
+
+abv_lrng <- str_extract(abv_lrng, "(([0-9]+)(\\.)([0-9]+)|([0-9]+))")
+
+#abv_lrng
+
+
+
+
+#ABV High Range
+
+abv_hrng <-  str_extract(abv_range, "(<high>)(([0-9]+)(\\.)([0-9]+)|([0-9]+))(</high>)")
+
+abv_hrng <- str_extract(abv_hrng, "(([0-9]+)(\\.)([0-9]+)|([0-9]+))")
+
+#abv_hrng
+
+
+
+
+# Join ABV data with Subcategory/IBU data
+
+rng_df <- cbind(ibu_rng_df,abv_lrng, abv_hrng)
+
+#rng_df
+
+
+
+#Extracting the Category ID from the Subcategory IDs the line up the subcategories with the categories
+#New df name created
+
+rng_df_t <- mutate(rng_df, category_id = substr(as.character(rng_df$subcategory_id), 1, (nchar(as.character(rng_df$subcategory_id))-1)))
+
+
+
+#Merging the Subcategory df with the category df to identify the correct category each subcategory belongs to
+
+rng_df_t <- left_join(rng_df_t, beer_catz, by = c("category_id" = "cat_id"))
+
+#rng_df_t
+
+
+
+
+#Reordered for aestethics
+rng_df_t <- rng_df_t[c(7,8,1,2,3,4,5,6)]
+
+#head(rng_df_t)
+
+
+
+#Computing the mean for each subcategory for IBU/ABV
+
+rng_df_t <- mutate(rng_df_t, ibu_avg = (mapply(function(x, y) ((x+y)/2) , as.numeric(as.character(rng_df_t$ibu_lrng)),as.numeric(as.character(rng_df_t$ibu_hrng)))))
+
+rng_df_t <- mutate(rng_df_t, abv_avg = (mapply(function(x, y) ((x+y)/2) , as.numeric(as.character(rng_df_t$abv_lrng)),as.numeric(as.character(rng_df_t$abv_hrng)))))                                               
+
+
+# Resulting df is a reference guide for beer styles to reference values
+# This XML is full of a ton more data and could be tailored to extract a great deal about beer
+# We will use this to attempt to match the subcategories to try imputing missing vals
+
+
+
+#head(rng_df_t)
+
+
+#Now We will process the Styles column of the beer data to see if we can match the styles to the extracted
+#Information from the XML doc
+#First there is processing of the text to extract/replace/fill white space or text in parenthsis
+#The special characters were put in place to ease search
+#This is a very simple scheme and can be improved greatly but works well enough for now
+
+df_BeerStyles <- as.character(unique(dfFull$Style))
+
+df_BeerStyles <- data.frame(beerStyle = df_BeerStyles)
+
+df_BeerStyles$beerStyle
+
+df_BeerStyles$beerStyle <- str_replace_all(as.character(df_BeerStyles$beerStyle),"[/]{1}", "")
+
+
+df_BeerStyles$beerStyle <- str_replace_all(as.character(df_BeerStyles$beerStyle),"[\\s]{1}", "~~")
+
+df_BeerStyles$beerStyle <- str_replace_all(as.character(df_BeerStyles$beerStyle),"~~~~", "~~")
+
+df_BeerStyles$beerStyle <- str_replace_all(as.character(df_BeerStyles$beerStyle), "((~~)(\\(.+))", "")
+
+
+
+
+# Here is the processed df of beer styles we will reference
+#df_BeerStyles
+
+
+
+
+
+#The same will be repeated for Subcategories
+# This can be improved as well
+
+#Some subcatz had a back slash in them and had a second type
+#This is not tidy data! It would be easy to strip the second term and make a new row
+#With the data to tidy it up
+
+#For now it was used as is with the terms on either side of the backslash as the whole value
+
+
+beerSubcats <- data.frame(beerSubcat = beer_subcatz)
+
+beerSubcats$beerSubcat <- str_replace_all(as.character(beerSubcats$beerSubcat),"[\\s]{1}", "~~")
+
+beerSubcats$beerSubcat <- str_replace_all(as.character(beerSubcats$beerSubcat),"~~~~", "~~")
+
+beerSubcats$beerSubcat <- str_replace_all(as.character(beerSubcats$beerSubcat), "((~~)(\\(.+))", "")
+
+
+
+#Remaining df is the subcategory ready to be looked up
+
+
+
+# This will return the index of the matches between the subcategory df and the reference df
+# This index will match the index of the df with the ibu/abv data and we can extract that data later
+
+dfRefMatchesSubCat_inx <- which(as.character(beerSubcats$beerSubcat)%in%as.character(df_BeerStyles$beerStyle))
+#dfRefMatchesSubCat_inx
+
+
+
+#Resulting df is the matching beer styles from the reference data to our data set
+
+rng_df_t[dfRefMatchesSubCat_inx,] %>% arrange(subcategory)
+
+
+
+
+#Now we repeat the process to extract the match based on category
+
+t_beer_catz <- beer_catz
+
+#t_beer_catz
+
+t_beer_catz$category <- str_replace_all(as.character(t_beer_catz$category),"[\\s]{1}", "~~")
+
+t_beer_catz$category <- str_replace_all(as.character(t_beer_catz$category),"~~~~", "~~")
+
+t_beer_catz$category <- str_replace_all(as.character(t_beer_catz$category), "((~~)(\\(.+))", "")
+
+#t_beer_catz
+
+#t_beer_catz$category
+
+
+
+#We will get the index of matches as before
+
+dfMatchesCatInx <-which(as.character(t_beer_catz$category)%in%as.character(df_BeerStyles$beerStyle))
+
+#dfMatchesCatInx
+
+#t_beer_catz[dfMatchesCatInx,][,1]
+
+
+
+#There are 3 matches but only one of the matches had data associated with it, Scottish Ale
+#This filtering below returns 3 beers with this class, we will average means for calcs
+
+dfRefMatchesCat <- rng_df_t %>% filter(category_id == 14)
+
+rng_df_f <- rbind(rng_df_t[dfRefMatchesSubCat,], dfRefMatchesCat)
+
+#rng_df_f
+
+
+
+
+#Now we will write to csv to load into our data set if desired
+
+# write.csv(rng_df_f, file="[YOUR FILE PATH AND NAME HERE]")
+
+# write.csv(rng_df_t, file="[YOUR FILE PATH AND NAME HERE]")
+
+# Here are the beers from the full df with missing ibu values
+ibu_blnks <- dfFull %>% filter(is.na(ibu))
+
+#ibu_blnks
+
+
+#Same with ABV for beers
+abv_blnks <- dfFull %>% filter(is.na(abv))
+
+#abv_blnks
+
+
+#Make of copy of the style column strip white space and create special char for lookup
+
+ibu_blnks <- mutate(ibu_blnks, t_style = ibu_blnks$style)
+
+ibu_blnks$t_style <- str_replace_all(as.character(ibu_blnks$t_style),"[/]{1}", "")
+
+ibu_blnks$t_style <- str_replace_all(as.character(ibu_blnks$t_style),"[\\s]{1}", "~~")
+
+ibu_blnks$t_style <- str_replace_all(as.character(ibu_blnks$t_style),"~~~~", "~~")
+
+ibu_blnks$t_style <- str_replace_all(as.character(ibu_blnks$t_style), "((~~)(\\(.+))", "")
+
+ibu_blnks
+
+
+
+#This will return the indexes of the beers from the the ibu_blnks df where the special char text will be matched to our reference
+
+dfRefMatchesSubCat <- which(as.character(ibu_blnks$t_style)%in%as.character(beerSubcats$beerSubcat))
+
+#dfRefMatchesSubCat
+
+
+
+#Here we extract the rows from the blanks df that have matches
+df_to_impt <- ibu_blnks[dfRefMatchesSubCat,]
+
+#df_to_impt
+
+
+inxHolder = list()
+
+
+for (i in 1:dim(df_to_impt)[1])
+{
+  inxHolder <- rbind(inxHolder, as.numeric(grep(df_to_impt$t_style[[i]], beerSubcats$beerSubcat)))
+}
+
+
+
+#inxHolder
+df_to_impt <- cbind(df_to_impt, inxHolder)
+
+#df_to_impt
+
+
+df_to_impt <- mutate(df_to_impt, styIbu = mapply(function(x) rng_df_t[x,9], df_to_impt$inxHolder))
+
+#df_to_impt
+
+ibus_to_replace <- df_to_impt[[13]]
+
+#ibus_to_replace
+
+df_to_impt$ibu <- df_to_impt$styIbu
+
+#df_to_impt
+
+df_imputed_ibus <- df_to_impt
+
+#df_imputed_ibus
+
+
+
+
+#~~~~~~~~~~Imputation of the dfFull~~~~~~~~~~~~~~~
+
+dfFull_imp <- dfFull
+
+dfFull_inx_to_impt <- which(is.na(dfFull$ibu))
+
+j <- as.numeric(c(1))
+
+for (i in 1: length(dfFull_inx_to_impt))
+{
+  
+  dfFull_imp[as.numeric(dfFull_inx_to_impt[[i]]),4] <- df_imputed_ibus[j,4]
+  j <- j+1
+  
+}
+
+ibu_miss_val <- dfFull %>% filter(is.na(ibu))
+
+#df_imputed_ibus
+
+
+
+notNaCols_imp <- colSums(!is.na(dfFull_imp), na.rm = TRUE) %>% tibble::enframe(name = NULL)
+
+#notNaCols
+
+isNaCols_imp <- colSums(is.na(dfFull_imp), na.rm = FALSE)%>% tibble::enframe(name = NULL)
+
+#isNaCols
+
+dfFull_vt_imp <- cbind(names(dfFull_imp),notNaCols_imp) #
+
+
+dfFull_vt_imp <- cbind(dfFull_vt_imp, isNaCols_imp)
+
+names(dfFull_vt_imp) <- c("column", "notNA", "isNA")
+
+
+
+
+
+#First try to store the raw data rather than truncate, can always truncate later/after
+
+#dfFull_vt <- dfFull_vt %>% mutate(percentNA = mapply(function(x,y) round(y/(x+y),4)*100,dfFull_vt$notNA, dfFull_vt$isNA))
+
+dfFull_vt_imp <- dfFull_vt_imp %>% mutate(total = rowSums(dfFull_vt_imp[,2:3]))
+
+dfFull_vt_imp <- dfFull_vt_imp %>% mutate(percentNA = mapply(function(x,y) y/(x+y),dfFull_vt_imp$notNA, dfFull_vt_imp$isNA))
+
+
+
+
+
+#dfFull_vt_imp
+
+
+naPlot1_imp <- dfFull_vt_imp %>% 
+  ggplot(aes(x=reorder(column, -isNA), y = isNA)) + 
+  geom_histogram(stat = "identity", fill ="gold2") +
+  labs(x="Category", y="# of Missing Values After Imputation", title = "Missing Values per Category\nAfter Imputation") +
+  #theme_minimal() +
+  theme(axis.text=element_text(color = "white"), 
+        axis.text.x = element_text(angle=45, hjust = 1), 
+        legend.position =  "none", 
+        plot.background = element_rect("cornsilk4"), 
+        panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), 
+        panel.grid.major.y = element_line(color="cornsilk4"), 
+        panel.grid.major.x = element_blank(),#element_line("ivory2"),
+        axis.title = element_text(color = "white"), 
+        plot.title = element_text(color = "white"), 
+        panel.grid.minor.x = element_line(color="white"))
+
+#naPlot1
+
+naPlot2_imp <- dfFull_vt_imp[c(3:4),] %>% 
+  ggplot(aes(x=reorder(column, -isNA), y = isNA)) + 
+  geom_histogram(stat = "identity", fill = 'gold2') + 
+  geom_text(data=dfFull_vt_imp[c(3:4),], label=paste(round((dfFull_vt_imp[c(3:4),]$percentNA)*100, 2), "%"), 
+            y = (dfFull_vt_imp[c(3:4),]$isNA)+100, size = 8, color="red") +
+  geom_histogram(data=dfFull_vt_imp[3:4,], mapping = aes(x=column, y = total), 
+                 stat = "identity", alpha = 1/5, fill="darkgoldenrod4") +
+  labs(x="Cateogry", y="# of Values After Imputation", title = "Percentage of Missing Values\nAfter Imputation") +
+  #theme_minimal() +
+  theme(axis.text=element_text(color = "white"), 
+        axis.text.x = element_text(angle=45, hjust = 1), 
+        legend.position =  "none", 
+        plot.background = element_rect("cornsilk4"), 
+        panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), 
+        panel.grid.major.x = element_blank(),#element_line("ivory2"), 
+        panel.grid.major.y = element_line(color="cornsilk4"), 
+        axis.title = element_text(color = "white"), 
+        plot.title = element_text(color = "white"), 
+        panel.grid.minor.x = element_line(color="white"))
+#plot.margin = margin(l=-5))
+
+#naPlot2
+
+grid.arrange(naPlot1_imp,naPlot2_imp, nrow=1)
+
+
+
+
+
+```
+
+# 4. Compute the median alcohol content and international bitterness unit for each state. Plot a bar chart to compare.
+
+```{r}
+
+# let's use the original dataset for this, not with all the average values filled in
+dfFull
+write.csv(dfFull, "FullBeerData.csv")
+
+dfMedianABVAndIBUByState <- dfFull %>%
+  group_by(State) %>%
+  summarize(MeanABV = mean(ABV,na.rm = TRUE), MeanIBU = mean(IBU, na.rm = TRUE)) %>% rename(state = State)
+
+dfMedianABVAndIBUByState
+
+# this looks interesting https://medium.com/@NickDoesData/visualizing-geographic-data-in-r-fb2e0f5b59c5
+# the one "simple bar chart of state gdps" with a coordinate flip looks interesting
+# TODO : this needs some color. Ideally different color for each state, but the color matches on each graph so they line up
+dfMedianABVAndIBUByState %>%
+ggplot()+
+  geom_bar(mapping=aes(x=reorder(state, MeanABV), y=MeanABV, fill=MeanABV), stat = 'identity') +
+  coord_flip() +
+  #scale_y_continuous(expand = c(0,0), limits = c(0,2.75)) +
+  ylab("Mean ABV") +
+  xlab('State') +
+  ggtitle('Mean ABV by State') +
+  theme_minimal() +
+  theme(axis.text=element_text(color = "white"), axis.text.y = element_text(size=6), legend.position =  "none", plot.background = element_rect("cornsilk4"), panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), panel.grid.major.y = element_line(color="ivory2"), panel.grid.major.x = element_line("cornsilk4"), axis.title = element_text(color = "white"), plot.title = element_text(color = "white")) +
+  scale_fill_gradient2(low = "lightgoldenrod", mid = "gold", high = "goldenrod4", midpoint = 0.056) 
+
+mean(dfMedianABVAndIBUByState$MeanABV)
+min(dfMedianABVAndIBUByState$MeanABV)
+max(dfMedianABVAndIBUByState$MeanABV)
+
+# let's plot MeanIBU in same order as MeanABV so we can compare 
+#NEED to fix the label
+
+
+dfMedianABVAndIBUByState %>%
+ggplot()+
+  geom_bar(mapping=aes(x=reorder(state, MeanABV), y=MeanIBU), stat = 'identity') +
+  coord_flip() +
+  #scale_y_continuous(expand = c(0,0), limits = c(0,2.75)) +
+  ylab("Mean ABV") +
+  xlab('State') +
+  ggtitle('Mean by Brewery State') +
+  theme(axis.text = element_text(size=6))
+
+
+
+
+```
+
+
+
+# 5. Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
+
+```{r}
+dfFull[which.max(dfFull$ABV),]
+dfFull[which.max(dfFull$IBU),]
+
+```
+
+
+# 6. Comment on the summary statistics and distribution of the ABV variable
+
+```{r}
+# review, histogram
+# review QQ plot
+# review other?
+
+summary(dfFull$ABV)
+#dfFull %>% filter(! is.na(dfFull$ABV))
+
+# why doesnt this work below???
+#dfFullNoABVNA <- dfFull %>% filter(! is.na(dfFull$ABV)) 
+#ggplot(dfFullNoABVNA, aes(dfFull$ABV)) + geom_histogram() +
+#  scale_x_continuous(name = "ABV (Alcohol by Volume)") +
+#   scale_y_continuous(name = "Count of Beers")
+
+ggplot(dfFull, aes(dfFull$ABV)) + geom_histogram() +
+  scale_x_continuous(name = "ABV (Alcohol by Volume)") +
+   scale_y_continuous(name = "Count of Beers")
+
+
+
+```
+
+# 7. Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Draw a scatter plot.  Make your best judgment of a relationship and EXPLAIN your answer
+
+```{r}
+# show a scatterplot of relationship betweeen bitterness (ABV) and alcoholic content (ABV).
+# fit the curve using a line
+
+
+
+# should we NOT include the NA's here? It's very distinctive and probably throws things off
+ggplot(dfFull, aes(x=dfFull$IBU, y=dfFull$ABV)) + geom_point() + geom_smooth(method=lm) +
+  xlab("IBU") + ylab("ABV") + ggtitle("ABV vs IBU for All Beers")
+
+
+
+```
+
+
+# 8.  Budweiser would also like to investigate the difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with “Ale” in its name other than IPA).  You decide to use KNN clustering to investigate this relationship.  Provide statistical evidence one way or the other. You can of course assume your audience is comfortable with percentages … KNN is very easy to understand.  
+
+
+```{r}
+#library(stringr)
+# filter out Indian Pale Ales and other types of "Ale"
+dfFull
+dfIndianPaleAles <- dfFull %>% filter(str_detect(Style, "IPA"))
+dfIndianPaleAles
+dfOtherAles <- dfFull %>% filter((str_detect(Style, "Ale"))) %>% filter(!str_detect(Style,"IPA"))
+dfOtherAles
+
+
+# Might need to give an additional attribute to indicate if the beer is an IPA or other type
+dfIndianPaleAles <- dfIndianPaleAles %>% mutate(AleType = 'Indian Pale Ale')
+dfIndianPaleAles
+dfOtherAles <- dfOtherAles %>% mutate(AleType ='Other Ale')
+dfOtherAles
+
+
+
+merge(dfIndianPaleAles,dfOtherAles,by="Beer_ID")
+dfAllAles <- rbind(dfIndianPaleAles,dfOtherAles)
+dfAllAles
+
+dfAllAles <- dfAllAles %>% filter(!is.na(dfAllAles$ABV)) 
+dfAllAles <- dfAllAles %>% filter(!is.na(dfAllAles$IBU))
+
+
+
+
+# show a scatterplot of IBU and ABV with color coding or different symbol for IPA and Ale
+
+# Ellipse by groups
+p <- ggplot(dfAllAles, aes(IBU, ABV, color = AleType))+
+  geom_point()
+p + stat_ellipse()
+# Change the type of ellipses: possible values are "t", "norm", "euclid"
+p + stat_ellipse(type = "norm")
+
+# https://ggplot2.tidyverse.org/reference/stat_ellipse.html
+#  default "t" assumes a multivariate t-distribution, and "norm" assumes a multivariate normal distribution
+
+
+```
+
+
+# use KNN to classify other ale vs pale ale and check the results
+
+```{r}
+# use KNN to predict the group membership and see if it works.
+# 
+
+# remove the rows with no ABV or no IBU
+
+
+# KNN Loop for average of many training / test partition 
+# Loop for many k and the average of many training / test partition
+#library(class)
+#library(caret)
+#library(e1071)
+
+
+set.seed(1)
+splitPerc = .7
+iterations = 100
+numks = 60
+masterAcc = matrix(nrow = iterations, ncol = numks)
+masterSpec = matrix(nrow = iterations, ncol = numks)
+masterSens = matrix(nrow = iterations, ncol = numks)
+
+  
+for(j in 1:iterations)
+{
+trainIndices = sample(1:dim(dfAllAles)[1],round(splitPerc * dim(mpg)[1]))
+train = dfAllAles[trainIndices,]
+test = dfAllAles[-trainIndices,]
+for(i in 1:numks)
+{
+  classifications = knn(train[,c(3,4)],test[,c(3,4)],as.factor(train$AleType), prob = TRUE, k = i)
+  table(as.factor(test$AleType),classifications)
+  CM = confusionMatrix(table(as.factor(test$AleType),classifications))
+  masterAcc[j,i] = CM$overall[1]
+  masterSens[j,i] = CM$byClass[1][[1]] # sensitivity
+  masterSpec[j,i] = CM$byClass[2][[1]] # specificity
+}
+
+}
+
+MeanAcc = colMeans(masterAcc)
+
+plot(seq(1,numks,1),MeanAcc, type = "l")
+which.max(MeanAcc)
+max(MeanAcc)
+
+
+
+MeanSens = colMeans(masterSens)
+
+plot(seq(1,numks,1),MeanSens, type = "l")
+which.max(MeanSens)
+max(MeanSens)
+
+MeanSpec = colMeans(masterSpec)
+
+plot(seq(1,numks,1),MeanSpec, type = "l")
+which.max(MeanSpec)
+max(MeanSpec)
+
+# we could  do a t test for IBU and ABV for IPA vs Ale too?
+
+
+
+```
+
+# let's try to make a graph of the decision boundaries
+# https://stackoverflow.com/questions/31234621/variation-on-how-to-plot-decision-boundary-of-a-k-nearest-neighbor-classifier-f/31236327
+# using this display of the decision boundaries we can see that really the best indicator of IPA vs other all is IBU
+# above around 60 (slightly less of higher ABV)
+
+
+
+```{r}
+
+require(MASS)
+#library(MASS)
+
+
+# more detailed
+test <- expand.grid(IBU=seq(0, 150,
+                           by=3),
+                     ABV=seq(0.03, 0.1, 
+                           by=0.005))
+
+
+
+require(class)
+#library(class)
+
+
+
+classif <- knn(dfAllAles[,c(4,3)],test,dfAllAles$AleType, prob = TRUE, k = 30)
+prob <- attr(classif, "prob")
+
+
+#library(dplyr)
+
+dataf <- bind_rows(mutate(test,
+                         prob=prob,
+                         cls="Indian Pale Ale",
+                         prob_cls=ifelse(classif==cls,
+                                         1, 0)),
+                  mutate(test,
+                         prob=prob,
+                         cls="Other Ale",
+                         prob_cls=ifelse(classif==cls,
+                                         1, 0)))
+
+
+ggplot(dataf) +
+  geom_point(aes(x=IBU, y=ABV, col=cls),
+             data = mutate(test, cls=classif),
+             size=1.2) + 
+  geom_contour(aes(x=IBU, y=ABV, z=prob_cls, group=cls, color=cls),
+               bins=2,
+               data=dataf) +
+  geom_point(aes(x=IBU, y=ABV, col=cls),
+             size=3,
+             data=data.frame(IBU=dfAllAles$IBU, ABV=dfAllAles$ABV, cls=dfAllAles$AleType))
+
+
+
+```
+
+
+
+
+# 9. Knock their socks off!  Find one other useful inference from the data that you feel Budweiser may be able to find value in.  You must convince them why it is important and back up your conviction with appropriate statistical evidence.
+
+```{r}
+
+
+
+```
+
+
+#https://www.rdocumentation.org/packages/ggmap/versions/2.6.1/topics/geocode
+# https://developers.google.com/maps/documentation/maps-static/intro
+
+
+```{r}
+#install.packages("ggmap")
+
+#library(tidyverse)
+#library(ggmap)
+
+register_google(key="AIzaSyC8dK9rGnefbGjNyOVrfmJSAf6lY_BgBQ4", write=TRUE)
+
+# the example given
+geocode("houston texas")
+# this works 
+geocode("Bend OR")
+dfFullWithGeocodes = dfFull %>% mutate(location = paste(City, State, sep=" "))
+dfFullWithGeocodes <- mutate_geocode(dfFullWithGeocodes, location)
+
+write.csv(dfFullWithGeocodes, "BeerFullWithGeocodes.csv")
+
+dfFullWithGeocodes = read.csv("BeerFullWithGeocodes.csv")
+
+```
+
+
+# now let's analyze the data, is there a relationship between ABV and latitude (north/south)?
+
+```{r}
+
+ggplot(dfFull, aes(x=dfFullWithGeocodes$lat, y=dfFullWithGeocodes$ABV)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Latitude") + ylab("ABV") + ggtitle("ABV vs Latititude for All Beers")
+
+# this is NOT that interesting, it's slightly decreasing it appears, but ever so slightly
+
+ggplot(dfFull, aes(x=dfFullWithGeocodes$lat, y=dfFullWithGeocodes$IBU)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Latitude") + ylab("IBU") + ggtitle("Latitude vs IBU for All Beers")
+
+# this is NOT that interesting, it's slightly decreasing it appears, but ever so slightly
+
+
+
+ggplot(dfFull, aes(x=dfFullWithGeocodes$lon, y=dfFullWithGeocodes$ABV)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Latitude") + ylab("ABV") + ggtitle("ABV vs Longtitude for All Beers")
+
+ggplot(dfFull, aes(x=dfFullWithGeocodes$lon, y=dfFullWithGeocodes$IBU)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Latitude") + ylab("IBU") + ggtitle("IBU vs Longtitude for All Beers")
+
+
+
+
+
+
+```
+
+# let's try IBU vs latitude
+
+```{r}
+
+
+
+```
+
+
+# show a map with the location of breweries displayed
+
+```{r}
+
+usa_center = as.numeric(geocode("United States"))
+USAMap = ggmap(get_googlemap(center=usa_center, scale=4, zoom=3), extent="normal")
+
+USAMap + 
+  geom_point(data = dfFullWithGeocodes, aes(x = lon, y = lat, fill = "red", alpha = 0.8), size = 1, shape = 21) +
+  guides(fill=FALSE, alpha=FALSE, size=FALSE)
+
+# this works but is it that interesting? Not sure...
+
+```
+
+
+
+
+# mash up the brewery data by state with state demographic data
+#state income data here: https://taxfoundation.org/new-state-level-price-data-shows-smaller-state-real-income-differences/
+
+```{r}
+dfStateIncomeData = read.csv("AdjustedIncomeByState.csv")
+
+head(dfStateIncomeData)
+
+head(dfBreweryByStateWithStatePop)
+head(dfStateIncomeData)
+
+dfStateIncomeData = dfStateIncomeData %>% mutate(abbr = trimws( as.character(dfStateIncomeData$State)))
+
+dfBeerWithIncomes = left_join(dfBreweryByStateWithStatePop, dfStateIncomeData, by = c("abbr" =  "abbr"))
+
+
+str(dfBeerWithIncomes)
+
+dfBeerWithIncomes$PerCapitaDisposableIncome = as.numeric(dfBeerWithIncomes$PerCapitaDisposableIncome)
+dfBeerWithIncomes$StatePriceAdjustedIncome = as.numeric(dfBeerWithIncomes$StatePriceAdjustedIncome)
+dfBeerWithIncomes$StatePriceAdjustedIncomeDif = as.numeric(dfBeerWithIncomes$StatePriceAdjustedIncomeDif)
+dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer = as.numeric(dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer)
+
+```
+
+# scatterplot of # of breweries vs income levels
+
+```{r}
+
+ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$StatePriceAdjustedIncome, y=dfBeerWithIncomes$BreweryPerMil)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Per Capita Adjusted Disposable Income") + ylab("Brewery Count") + ggtitle("Per Capita Adjusted Disposable I vs IBU for All Beers")
+
+
+head(dfBeerWithIncomes)
+
+ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer, y=dfBeerWithIncomes$BreweryPerMil)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Affordability Adjustment") + ylab("Brewery Count") + ggtitle("Brewery Count vs Affordability Adjustment")
+
+
+ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer, y=dfBeerWithIncomes$BreweryPerMil)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Affordability Adjustment") + ylab("Brewery Count") + ggtitle("Brewery Count vs Affordability Adjustment")
+
+
+ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer, y=dfBeerWithIncomes$BreweryPerMil)) + geom_point() + geom_smooth(method=loess) +
+  xlab("Affordability Adjustment") + ylab("Brewery Count") + ggtitle("Brewery Count vs Affordability Adjustment") +   geom_text(aes(label=ifelse(dfBeerWithIncomes$BreweryPerMil>4,as.character(abbr),'')),hjust=0,vjust=0)
+
+```
+
+
+# let's look at absolute value of the adjustment... 
+
+```{r}
+
+dfBeerWithIncomes$AbsoluteValueIncomeAdjPer = abs(dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer)
+
+ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$AbsoluteValueIncomeAdjPer, y=dfBeerWithIncomes$BreweryPerMil)) + geom_point() + geom_smooth(method=loess) +
+  xlab("Absolute Affordability Adjustment") + ylab("Brewery Count") + ggtitle("Brewery Count vs Absolute Affordability Adjustment") +   geom_text(aes(label=ifelse(dfBeerWithIncomes$BreweryPerMil>4,as.character(abbr),'')),hjust=0,vjust=0)
+
+ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$AbsoluteValueIncomeAdjPer, y=dfBeerWithIncomes$BreweryPerMil)) + geom_point() + geom_smooth(method=lm) +
+  xlab("Absolute Affordability Adjustment") + ylab("Brewery Count") + ggtitle("Brewery Count vs Absolute Affordability Adjustment") +   geom_text(aes(label=ifelse(dfBeerWithIncomes$BreweryPerMil>4,as.character(abbr),'')),hjust=0,vjust=0)
+
+
+
+
+```
+
+
