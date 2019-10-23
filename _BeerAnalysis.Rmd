@@ -83,9 +83,9 @@ dfFullNoJoin <- dfFull[is.na(dfFull$City),]
 
 
 
-## analysis 
-# 1. How many breweries are present in each state?
-# After execution of the code below, the dataframe dfBreweryByState gives the totals by state.
+# analysis 
+## 1. How many breweries are present in each state?
+## After execution of the code below, the dataframe dfBreweryByState gives the totals by state.
 
 ```{r}
 
@@ -105,8 +105,8 @@ mean(as.numeric(dfBreweryByState$BreweryCount))
 
 
 
-# The following code generates 4 outputs: 1) shows the dataframe dfBreweryByState, 2) shows breweries count by state in a barchart 3) Shows Breweries by state on a state map, 4) Shows Breweries by state, per capita (per million persons).
-# Colorado has the most breweries overall, while Vermont has the most breweries per population (usingbased on 2015 state populations)
+## The following code generates 4 outputs: 1) shows the dataframe dfBreweryByState, 2) shows breweries count by state in a barchart 3) Shows Breweries by state on a state map, 4) Shows Breweries by state, per capita (per million persons).
+## Colorado has the most breweries overall, while Vermont has the most breweries per population (usingbased on 2015 state populations)
 
 ```{r}
 
@@ -166,7 +166,7 @@ plot_usmap(data = dfBreweryByStateWithStatePop, values = "BreweryPerMil", color 
 
 
 
-# 2. Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file.  (RMD only, this does not need to be included in the presentation or the deck.)
+## 2. Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file.  (RMD only, this does not need to be included in the presentation or the deck.)
 
 ```{r}
 
@@ -176,8 +176,8 @@ tail(dfFull, 6)
 ```
 
 
-# 3. Address the missing values in each column.
-# The following code imputes the missing values for the various beers based on the type of beer (e.g. calculate the average IBU and ABV per type of beer, and use it when the IBU or ABV is not available). This gives us a more exact estiamte of the missing values then using a global average across all types of beer.
+## 3. Address the missing values in each column.
+## The following code imputes the missing values for the various beers based on the type of beer (e.g. calculate the average IBU and ABV per type of beer, and use it when the IBU or ABV is not available). This gives us a more exact estiamte of the missing values then using a global average across all types of beer.
 
 ```{r}
 
@@ -764,8 +764,8 @@ grid.arrange(naPlot1_imp,naPlot2_imp, nrow=1)
 ```
 
 
-# 4. Compute the median alcohol content and international bitterness unit for each state. Plot a bar chart to compare.
-# The output shows the mean ABV by state in a barchart. Following that is another barchart of mean IBU by state, where the states are sorted in the other of the ABV (most to least) for comparison. 
+## 4. Compute the median alcohol content and international bitterness unit for each state. Plot a bar chart to compare.
+## The output shows the mean ABV by state in a barchart. Following that is another barchart of mean IBU by state, where the states are sorted in the other of the ABV (most to least) for comparison. 
 
 ```{r}
 
@@ -791,7 +791,15 @@ ggplot()+
   xlab('State') +
   ggtitle('Mean ABV by State') +
   theme_minimal() +
-  theme(axis.text=element_text(color = "white"), axis.text.y = element_text(size=6), legend.position =  "none", plot.background = element_rect("cornsilk4"), panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), panel.grid.major.y = element_line(color="ivory2"), panel.grid.major.x = element_line("cornsilk4"), axis.title = element_text(color = "white"), plot.title = element_text(color = "white")) +
+  theme(axis.text=element_text(color = "white"), 
+        axis.text.y = element_text(size=6), 
+        legend.position =  "none", 
+        plot.background = element_rect("cornsilk4"), 
+        panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), 
+        panel.grid.major.y = element_line(color="ivory2"), 
+        panel.grid.major.x = element_line("cornsilk4"), 
+        axis.title = element_text(color = "white"), 
+        plot.title = element_text(color = "white")) + 
   scale_fill_gradient2(low = "lightgoldenrod", mid = "gold", high = "goldenrod4", midpoint = 0.056) 
 
 mean(dfMedianABVAndIBUByState$MeanABV)
@@ -802,15 +810,25 @@ max(dfMedianABVAndIBUByState$MeanABV)
 #NEED to fix the label
 
 
-dfMedianABVAndIBUByState %>%
+dfMedianABVAndIBUByState %>% filter(!is.na(MeanIBU)) %>%
 ggplot()+
-  geom_bar(mapping=aes(x=reorder(state, MeanABV), y=MeanIBU), stat = 'identity') +
+  geom_bar(mapping=aes(x=reorder(state, MeanIBU), y=MeanIBU, fill = MeanIBU), stat = 'identity') +
   coord_flip() +
   #scale_y_continuous(expand = c(0,0), limits = c(0,2.75)) +
-  ylab("Mean ABV") +
+  ylab("Mean IBU") +
   xlab('State') +
-  ggtitle('Mean by Brewery State') +
-  theme(axis.text = element_text(size=6))
+  ggtitle('Mean IBU by State') +
+  theme_minimal() +
+  theme(axis.text=element_text(color = "white"), 
+        axis.text.y = element_text(size=6), 
+        legend.position =  "none", 
+        plot.background = element_rect("cornsilk4"), 
+        panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), 
+        panel.grid.major.y = element_line(color="ivory2"), 
+        panel.grid.major.x = element_line("cornsilk4"), 
+        axis.title = element_text(color = "white"), 
+        plot.title = element_text(color = "white")) + 
+  scale_fill_gradient2(low = "lightgoldenrod", mid = "gold", high = "goldenrod4", midpoint = 42) 
 
 
 
@@ -819,9 +837,9 @@ ggplot()+
 
 
 
-# 5. Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
-# The state wiyth the maximum alcoholic beer (ABV) is Colorado - Upslope Brewing company has a Quadrupel (Quad) with ABV = 0.128
-# The state with the maximum IBU (bitterness) is Oregon - Astoria Brewing Company in Astoria OR ahs an American Double/Imperial IPA with an IBU of 138.
+## 5. Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
+## The state wiyth the maximum alcoholic beer (ABV) is Colorado - Upslope Brewing company has a Quadrupel (Quad) with ABV = 0.128
+## The state with the maximum IBU (bitterness) is Oregon - Astoria Brewing Company in Astoria OR ahs an American Double/Imperial IPA with an IBU of 138.
 
 ```{r}
 dfFull[which.max(dfFull$abv),]
@@ -855,9 +873,9 @@ ggplot(dfFull, aes(dfFull$abv)) + geom_histogram() +
 
 ```
 
-# 7. Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Draw a scatter plot.  Make your best judgment of a relationship and EXPLAIN your answer
-# There appears to be a correlation between ABV and IBU - as ABV increases, IBU is generally increasing too. 
-# Hops causes IBU (bitterness) while malt and sugar cause ABV (alcohol content). So understanding how this works, this correlation should be due to the choices of the brewers, adding increasing Hops and malt/sugar to their beer, and not causition. 
+## 7. Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Draw a scatter plot.  Make your best judgment of a relationship and EXPLAIN your answer
+## There appears to be a correlation between ABV and IBU - as ABV increases, IBU is generally increasing too. 
+## Hops causes IBU (bitterness) while malt and sugar cause ABV (alcohol content). So understanding how this works, this correlation should be due to the choices of the brewers, adding increasing Hops and malt/sugar to their beer, and not causition. 
 
 ```{r}
 # show a scatterplot of relationship betweeen bitterness (ABV) and alcoholic content (ABV).
@@ -874,10 +892,8 @@ ggplot(dfFull, aes(x=dfFull$ibu, y=dfFull$abv)) + geom_point() + geom_smooth(met
 ```
 
 
-# 8.  Budweiser would also like to investigate the difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with “Ale” in its name other than IPA).  You decide to use KNN clustering to investigate this relationship.  Provide statistical evidence one way or the other. You can of course assume your audience is comfortable with percentages … KNN is very easy to understand.  
-
-
-# The following diagram shows the IBU and ABV for individual IPA and Other Ales beers - red indicates IPA, blue indicates Other Ales. The red and blue ellipses shows a confidence interval for the values of each beer type - basically where we expect beers of that type to be based on their mean and standard deviation. 
+## 8.  Budweiser would also like to investigate the difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with “Ale” in its name other than IPA).  You decide to use KNN clustering to investigate this relationship.  Provide statistical evidence one way or the other. You can of course assume your audience is comfortable with percentages … KNN is very easy to understand.  
+## The following diagram shows the IBU and ABV for individual IPA and Other Ales beers - red indicates IPA, blue indicates Other Ales. The red and blue ellipses shows a confidence interval for the values of each beer type - basically where we expect beers of that type to be based on their mean and standard deviation. 
 
 
 ```{r}
@@ -922,9 +938,9 @@ p + stat_ellipse(type = "norm")
 ```
 
 
-# use KNN to classify other ale vs pale ale and check the results
-# The following code tests various k values with the K nearest neighbor algorithm to find the best accuracy. The first diagram shows the accuracy vs. k value. Additional diagrams show the sensitivity and specificity vs. K value.
-# using a k value of around 30 looks good, giving accuracy = 0.84, sensitivity = 0.79, and specificity = 0.88.
+## use KNN to classify other ale vs pale ale and check the results
+## The following code tests various k values with the K nearest neighbor algorithm to find the best accuracy. The first diagram shows the accuracy vs. k value. Additional diagrams show the sensitivity and specificity vs. K value.
+## using a k value of around 30 looks good, giving accuracy = 0.84, sensitivity = 0.79, and specificity = 0.88.
 
 ```{r}
 # use KNN to predict the group membership and see if it works.
@@ -995,10 +1011,10 @@ MeanSpec[30]
 
 ```
 
-# let's try to make a graph of the decision boundaries. 
-# https://stackoverflow.com/questions/31234621/variation-on-how-to-plot-decision-boundary-of-a-k-nearest-neighbor-classifier-f/31236327
-# using this display of the decision boundaries we can see that really the best indicator of IPA vs other all is IBU
-# above around 60 (slightly less of higher ABV)
+## let's try to make a graph of the decision boundaries. 
+## https://stackoverflow.com/questions/31234621/variation-on-how-to-plot-decision-boundary-of-a-k-nearest-neighbor-classifier-f/31236327
+## using this display of the decision boundaries we can see that really the best indicator of IPA vs other all is IBU
+## above around 60 (slightly less of higher ABV)
 
 
 
@@ -1057,7 +1073,7 @@ ggplot(dataf) +
 
 
 
-# 9. Knock their socks off!  Find one other useful inference from the data that you feel Budweiser may be able to find value in.  You must convince them why it is important and back up your conviction with appropriate statistical evidence.
+## 9. Knock their socks off!  Find one other useful inference from the data that you feel Budweiser may be able to find value in.  You must convince them why it is important and back up your conviction with appropriate statistical evidence.
 
 ```{r}
 
@@ -1066,8 +1082,8 @@ ggplot(dataf) +
 ```
 
 
-#https://www.rdocumentation.org/packages/ggmap/versions/2.6.1/topics/geocode
-# https://developers.google.com/maps/documentation/maps-static/intro
+## https://www.rdocumentation.org/packages/ggmap/versions/2.6.1/topics/geocode
+##  https://developers.google.com/maps/documentation/maps-static/intro
 
 
 ```{r}
@@ -1124,8 +1140,8 @@ ggplot(dfFull, aes(x=dfFullWithGeocodes$lon, y=dfFullWithGeocodes$ibu)) + geom_p
 
 ```
 
-# show a map with the location of breweries displayed
-# we could use this to do some additional visualizations but so far this is just informational.
+## show a map with the location of breweries displayed
+## we could use this to do some additional visualizations but so far this is just informational.
 
 ```{r}
 
@@ -1168,8 +1184,8 @@ dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer = as.numeric(dfBeerWithIncomes$
 
 ```
 
-# scatterplot of # of breweries vs income 
-# the last chart is the most interesting. It shows that the breweries tend to fall in states with the middle income adjustment (close to 0)
+## scatterplot of # of breweries vs income levels
+## the last chart is the most interesting. It shows that the breweries tend to fall in states with the middle income adjustment (close to 0)
 
 ```{r}
 
@@ -1185,8 +1201,8 @@ ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$StatePriceAdjustedIncomeDifPer
 ```
 
 
-# let's look at states and their brewery count vs. the absolute value of the affordability adjustment for the state.
-# the states with the highest # of breweries are on the left. This shows that the most breweries are for states with near 0 affordability adjustment.
+## let's look at states and their brewery count vs. the absolute value of the affordability adjustment for the state.
+## the states with the highest # of breweries are on the left. This shows that the most breweries are for states with near 0 affordability adjustment.
 
 ```{r}
 
@@ -1204,7 +1220,7 @@ ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomes$AbsoluteValueIncomeAdjPer, y=d
 ```
 
 
-# pull in manufacturing data
+## pull in manufacturing data
 
 ```{r}
 
@@ -1241,8 +1257,8 @@ dfBeerWithIncomeManuf <- mutate(dfBeerWithIncomeManuf, PercentMfgOfPop = EMP/pop
 
 ```
 
-# show the count of brewery per million ppl vs % manufacturing
-# again this shows little correlation
+## show the count of brewery per million ppl vs % manufacturing
+## again this shows little correlation
 
 ```{r}
 
@@ -1252,14 +1268,14 @@ ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomeManuf$PercentMfgOfPop, y=dfBeerW
 ```
 
 
-# pull in the hippie data
+## pull in the hippie data
 ```{r}
 dfHippyData = read.csv("HippyData.csv")
 str(dfHippyData)
 
 dfBeerWithHipyData = inner_join(dfBeerWithIncomeManuf, dfHippyData,by = "abbr")
 
-# get these statistics by state pop
+## get these statistics by state pop
 
 dfBeerWithHipyData
 
@@ -1268,7 +1284,7 @@ dfBeerWithHipyData <- dfBeerWithHipyData %>% mutate(CoopCountByPop = CoopCount/ 
 
 
 ```
-# now let's graph those two new variables
+## now let's graph those two new variables
 ## these graphs look interesting - there is definitely a correlation between commune and brewery count, and also between coop count and brewery count
 
 ```{r}
@@ -1280,7 +1296,7 @@ ggplot(dfBeerWithHipyData, aes(x=dfBeerWithHipyData$CoopCountByPop, y=dfBeerWith
   xlab("Coops Per 1 Mil Population") + ylab("Brewery Count per Mil Population") + ggtitle("Coops per Mil Population vs Coop Count per Mil Persons") +   geom_text(aes(label=ifelse(dfBeerWithIncomes$BreweryPerMil>4,as.character(abbr),'')),hjust=0,vjust=0)
 
 
-# remove vermont and try again
+## remove vermont and try again
 dfBeerWithHipyDataNoNVermont <- dfBeerWithHipyData[dfBeerWithHipyData$abbr != 'VT',]
 dfBeerWithHipyDataNoNVermont
 
@@ -1303,9 +1319,11 @@ Sys.setenv("plotly_api_key"="bqNX80lwcvpBPSY7YQMi")
 ```
 
 
-# other states with high communes and high coops
+## other states with high communes and high coops
 ## where else should we start a brewery?
 ## The States with high coop/communce count but low brewery count may be good targets for market expansion!
+# so.. HI, MN, NM, and WA are good places to put craft breweries, that are underrepresented today.
+
 ```{r}
 
 library(plotly)
@@ -1316,7 +1334,7 @@ g <- ggplot(dfBeerWithHipyData, aes(x=dfBeerWithHipyData$CommuneCountByPop, y=df
 
 g
 
-# that's ok, but really we want 3d
+## that's ok, but really we want 3d
 
 p <- plot_ly(dfBeerWithHipyData, x = dfBeerWithHipyData$CommuneCountByPop, y = dfBeerWithHipyData$CoopCountByPop, z = dfBeerWithHipyData$BreweryPerMil, color=dfBeerWithHipyData$BreweryPerMil, text=dfBeerWithHipyData$abbr) %>%
   add_markers() %>%
@@ -1337,7 +1355,6 @@ dfGoodPlacesForBrewery <- dfGoodPlacesForBrewery %>% filter(dfGoodPlacesForBrewe
 
 select(dfGoodPlacesForBrewery, c(abbr, full, StatePriceAdjustedIncomeDifPer, CommuneCountByPop,CoopCountByPop, BreweryPerMil))
 
-# so.. HI, MN, NM, and WA are good places to put craft breweries, that are underrepresented today.
 
 ```
 
