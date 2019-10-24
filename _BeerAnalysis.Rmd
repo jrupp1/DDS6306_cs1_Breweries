@@ -855,21 +855,43 @@ dfFull[which.max(dfFull$ibu),]
 # review, histogram
 # review QQ plot
 # review other?
-
-summary(dfFull$ABV)
+summary(dfFull$abv)
+abvMean <- summary(dfFull$abv)[[4]]
+abvSd <- sd(dfFull$abv, na.rm = TRUE)
 #dfFull %>% filter(! is.na(dfFull$ABV))
-
+#colMeans(dfFull, na.rm = TRUE)
 # why doesnt this work below???
 #dfFullNoABVNA <- dfFull %>% filter(! is.na(dfFull$ABV)) 
 #ggplot(dfFullNoABVNA, aes(dfFull$ABV)) + geom_histogram() +
 #  scale_x_continuous(name = "ABV (Alcohol by Volume)") +
 #   scale_y_continuous(name = "Count of Beers")
 
-ggplot(dfFull, aes(dfFull$abv)) + geom_histogram() +
-  scale_x_continuous(name = "ABV (Alcohol by Volume)") +
-   scale_y_continuous(name = "Count of Beers")
+#~~~~~~~~~~~ADD geom_vline to this section~~~~~~~~~~~~~~~
 
 
+#--------Q&A Why is the axis' not start at 0
+
+
+dfFull %>% filter(!is.na(abv)) %>% ggplot(aes(x=abv)) + geom_histogram(fill='gold2') +
+  labs(x = "ABV (Alcohol by Volume)", y = "Count of Beers", title = "Distribution of ABV means") + 
+  theme(axis.text=element_text(color = "white"), 
+        legend.position =  "none", 
+        plot.background = element_rect("cornsilk4"), 
+        panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), 
+        panel.grid.minor.y = element_line(color="ivory2"),
+        #panel.grid.major.y = element_line(color="ivory2"), 
+        #panel.grid.major.x = element_line("cornsilk4"), 
+        axis.title = element_text(color = "white"), 
+        plot.title = element_text(color = "white")) +
+  geom_vline(xintercept = abvMean, linetype="dotdash", color = 'red') +
+  geom_text(aes(label = paste("Mean: ", round(abvMean,4))), x=abvMean+0.015, y=400, color='red') +
+  geom_text(aes(label = paste("SD: ", round(abvSd,4))), x=abvMean+0.013, y=375, color='red')
+  #scale_fill_gradient2(low = "lightgoldenrod", mid = "gold", high = "goldenrod4", midpoint = 42)   
+  
+  #geom_vline(xintercept = abvMean, linetype="dotdash")
+#ggplot(dfFull, aes(dfFull$abv)) + geom_histogram() 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ```
 
