@@ -873,6 +873,8 @@ abvSd <- sd(dfFull$abv, na.rm = TRUE)
 
 
 dfFull %>% filter(!is.na(abv)) %>% ggplot(aes(x=abv)) + geom_histogram(fill='gold2') +
+  stat_function(fun = dnorm, args = list(mean = mean(dfFull$abv, na.rm = TRUE), sd = sd(dfFull$abv, na.rm = TRUE))) +
+
   labs(x = "ABV (Alcohol by Volume)", y = "Count of Beers", title = "Distribution of ABV means") + 
   theme(axis.text=element_text(color = "white"), 
         legend.position =  "none", 
@@ -885,7 +887,7 @@ dfFull %>% filter(!is.na(abv)) %>% ggplot(aes(x=abv)) + geom_histogram(fill='gol
         plot.title = element_text(color = "white")) +
   geom_vline(xintercept = abvMean, linetype="dotdash", color = 'red') +
   geom_text(aes(label = paste("Mean: ", round(abvMean,4))), x=abvMean+0.015, y=400, color='red') +
-  geom_text(aes(label = paste("SD: ", round(abvSd,4))), x=abvMean+0.013, y=375, color='red')
+  geom_text(aes(label = paste("SD: ", round(abvSd,4))), x=abvMean+0.013, y=375, color='red') 
   #scale_fill_gradient2(low = "lightgoldenrod", mid = "gold", high = "goldenrod4", midpoint = 42)   
   
   #geom_vline(xintercept = abvMean, linetype="dotdash")
@@ -994,7 +996,7 @@ train = dfAllAles[trainIndices,]
 test = dfAllAles[-trainIndices,]
 for(i in 1:numks)
 {
-  classifications = knn(train[,c(3,4)],test[,c(3,4)],as.factor(train$AleType), prob = TRUE, k = i)
+  classifications = knn(scale(train[,c(3,4)]),scale(test[,c(3,4)]),as.factor(train$AleType), prob = TRUE, k = i)
   table(as.factor(test$AleType),classifications)
   CM = confusionMatrix(table(as.factor(test$AleType),classifications))
   masterAcc[j,i] = CM$overall[1]
@@ -1024,14 +1026,19 @@ plot(seq(1,numks,1),MeanSpec, type = "l", xlab = "K value", ylab="Specificity")
 which.max(MeanSpec)
 max(MeanSpec)
 
-# we could  do a t test for IBU and ABV for IPA vs Ale too?
-
-MeanAcc[30]
-MeanSens[30]
-MeanSpec[30]
 
 
 ```
+
+### Check the accuracy, sensitivity and specificy for the "best" k value
+```{r}
+
+MeanAcc[11]
+MeanSens[11]
+MeanSpec[11]
+
+```
+
 
 ## let's try to make a graph of the decision boundaries. 
 ## https://stackoverflow.com/questions/31234621/variation-on-how-to-plot-decision-boundary-of-a-k-nearest-neighbor-classifier-f/31236327
@@ -1059,7 +1066,7 @@ require(class)
 
 
 
-classif <- knn(dfAllAles[,c(4,3)],test,dfAllAles$AleType, prob = TRUE, k = 30)
+classif <- knn(scale(dfAllAles[,c(4,3)]),scale(test),dfAllAles$AleType, prob = TRUE, k = 11)
 prob <- attr(classif, "prob")
 
 
@@ -1077,7 +1084,8 @@ dataf <- bind_rows(mutate(test,
                                          1, 0)))
 
 
-ggplot(dataf) +
+ggplot(dataf, title="kNN Decision Boundary for IBU vs ABV") +
+  ggtitle("kNN Decision Boundary for IBU vs ABV") +
   geom_point(aes(x=IBU, y=ABV, col=cls),
              data = mutate(test, cls=classif),
              size=1.2) + 
@@ -1161,6 +1169,43 @@ ggplot(dfFull, aes(x=dfFullWithGeocodes$lon, y=dfFullWithGeocodes$ibu)) + geom_p
 
 
 ```
+
+## Look at Brewery Count per Population vs Longitude and Latitude
+### a little interesting but not getting anyting huge here
+```{r}
+
+dfFullWithGeocodes %>% ggplot(aes(x=dfFullWithGeocodes$lon)) + geom_histogram(fill='gold2') +
+  stat_function(fun = dnorm, args = list(mean = mean(dfFullWithGeocodes$lon, na.rm = TRUE), sd = sd(dfFullWithGeocodes$lon, na.rm = TRUE))) +
+
+  labs(x = "Longitude", y = "Count of Beers", title = "Distribution of Beer Varieties by Longitude") + 
+  theme(axis.text=element_text(color = "white"), 
+        legend.position =  "none", 
+        plot.background = element_rect("cornsilk4"), 
+        panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), 
+        panel.grid.minor.y = element_line(color="ivory2"),
+        #panel.grid.major.y = element_line(color="ivory2"), 
+        #panel.grid.major.x = element_line("cornsilk4"), 
+        axis.title = element_text(color = "white"), 
+        plot.title = element_text(color = "white")) 
+
+
+dfFullWithGeocodes %>% ggplot(aes(x=dfFullWithGeocodes$lat)) + geom_histogram(fill='gold2') +
+  stat_function(fun = dnorm, args = list(mean = mean(dfFullWithGeocodes$lat, na.rm = TRUE), sd = sd(dfFullWithGeocodes$lat, na.rm = TRUE))) +
+
+  labs(x = "Latitude", y = "Count of Beers", title = "Distribution of Beer Varieties by Latitude") + 
+  theme(axis.text=element_text(color = "white"), 
+        legend.position =  "none", 
+        plot.background = element_rect("cornsilk4"), 
+        panel.background = element_rect(color="darkgoldenrod4", fill='ivory2'), 
+        panel.grid.minor.y = element_line(color="ivory2"),
+        #panel.grid.major.y = element_line(color="ivory2"), 
+        #panel.grid.major.x = element_line("cornsilk4"), 
+        axis.title = element_text(color = "white"), 
+        plot.title = element_text(color = "white")) 
+
+```
+
+
 
 ## show a map with the location of breweries displayed
 ## we could use this to do some additional visualizations but so far this is just informational.
@@ -1285,7 +1330,7 @@ dfBeerWithIncomeManuf <- mutate(dfBeerWithIncomeManuf, PercentMfgOfPop = EMP/pop
 ```{r}
 
 ggplot(dfBeerWithIncomes, aes(x=dfBeerWithIncomeManuf$PercentMfgOfPop, y=dfBeerWithIncomeManuf$BreweryPerMil)) + geom_point() + geom_smooth(method=lm) +
-  xlab("Percent of Pop in Manufacturing") + ylab("Brewery Count") + ggtitle("Brewery Count vsPercent of Pop in Manufacturing")
+  xlab("Percent of Pop in Manufacturing") + ylab("Brewery Count") + ggtitle("Brewery Count vs Percent of Pop in Manufacturing")
 
 ```
 
