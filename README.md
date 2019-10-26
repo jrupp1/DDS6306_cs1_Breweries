@@ -46,7 +46,7 @@ dfBreweryByState: dataframe grouping breweries together by state for emuneration
 
 dfBreweryByStateWithStatePop: Joining brewery by state dataframe with state population data from the 2015 census data in the usmap package
 
-notNaCols: Enumerating the number of rows which aren't' NANs in each column of the dataframe
+notNaCols: Enumerating the number of rows which aren't NANs in each column of the dataframe
 
 isNaCols: enumerating the number of rows which are NANs in each column of the dataframe
 
@@ -66,7 +66,7 @@ beer_subcat: html node text that holds subcategory data, parsed with regex to as
 
 beer_subcatz: final data frame with beer category and id based on html doc
 
-beer_stats: extracting the beer characteristic data from the subcategory text. Stats such as IBU, ABV, Color, etc. <- str_extract(beer_subcat, "(<stats>)((\\s|\\S)+)(</stats>)")
+beer_stats: extracting the beer characteristic data from the subcategory text. Stats such as IBU, ABV, Color, etc. 
 
 ibu_range: Extracting the ibu range, you can parse low and high values
 
@@ -120,7 +120,7 @@ dfFull_vt_imp: Dataframe to graph the number of missing values after imputation
 
 naPlot1_imp: First of the plots displaying the NAN row values for each column after imputation 
 
-naPlot2_imp: Second of the plots displaying the NAN row values for each column after imputation with the percentage above   <- dfFull_vt_imp[c(3:4),] %>% 
+naPlot2_imp: Second of the plots displaying the NAN row values for each column after imputation with the percentage above  
 
 dfMedianABVAndIBUByState: Dataframe with mean abv and ibu by state for histograms
 
