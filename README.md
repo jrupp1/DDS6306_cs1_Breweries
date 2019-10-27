@@ -19,7 +19,7 @@ Additional data used used in conjunciton with the craft brewery and beer data:
 * ASM_2016_31AS101_with_ann.csv contains the manufacturing data by state for 2016.
    This data came from here: https://www.census.gov/data/tables/2016/econ/asm/2016-asm.html
    
-* Beer style guidelines at this website https://www.bjcp.org/stylecenter.php . They provided a link to an xml doc that has a number of stats about different beer styles. We parse the required data and create a data frame to attempt to impute missing valsCreated a csv called "
+* Beer style guidelines at this website https://www.bjcp.org/stylecenter.php . They provided a link to an xml doc that has a number of stats about different beer styles. We parse the required data and create a data frame to attempt to impute missing valsCreated a csv called "abv_ibu_ref.csv".
 
 The main file containing the analysis work is _BeerAnalysis.Rmd.
 
@@ -29,7 +29,7 @@ The file _BeerAnalysis.html contains the knitr output in html from running the f
 Presentations:
 Jon Paugh's youtube video is here: https://www.youtube.com/watch?v=XgoDy0ZKkrc
 
-
+Jason Rupp's youtube video is here: https://youtu.be/0-QieTEXXOc 
 
 # Codebook
 The following explains the variable names used in the project.
